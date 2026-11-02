@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Straight Down Spell Owner</title>
+<style>
+  :root{--bg:#f4efe1;--paper:#fbf8ef;--ink:#1d1b16;--muted:#6f6858;--line:#d6cdb6;--red:#b3261e}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+  header{position:sticky;top:0;background:var(--bg);border-bottom:3px double var(--ink);padding:12px 16px;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;z-index:2}
+  h1{font:900 1.3rem Georgia,serif;margin:0} main{max-width:900px;margin:0 auto;padding:16px}
+  button{font:600 .9rem inherit;border:1px solid var(--ink);background:var(--paper);color:var(--ink);border-radius:6px;padding:6px 12px;cursor:pointer}
+  button.primary{background:var(--ink);color:var(--paper)}
+  .muted{color:var(--muted)} .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+  .stat{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .stat b{display:block;font-size:1.8rem;line-height:1.1;font-variant-numeric:tabular-nums}
+  .stat span{color:var(--muted);font-size:.85rem}
+  table{border-collapse:collapse;width:100%;background:var(--paper);border:1px solid var(--line);margin-bottom:14px}
+  td,th{padding:6px 5px;border-bottom:1px solid var(--line);text-align:left;font-size:.8rem;font-variant-numeric:tabular-nums} th{color:var(--muted);font-weight:600}
+  h2{font:700 1.05rem Georgia,serif;margin:18px 0 8px}
+  .two{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+</style>
+</head>
+<body>
+<header>
+  <h1><span id="gname">Straight Down Spell</span> owner</h1>
+  <div class="row"><span id="who" class="muted"></span><button id="signin" class="primary" hidden>Sign in with Google</button><button id="signout" hidden>Sign out</button></div>
+</header>
+<main>
+  <p id="msg" class="muted">Loading…</p>
+  <section id="usage" hidden></section>
+</main>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+const FIREBASE_CONFIG = {"apiKey":"AIzaSyAlbSCTpAiK-1tojkyWrY3QuJsSzILHSfs","authDomain":"aislerun-88e79.firebaseapp.com","projectId":"aislerun-88e79","storageBucket":"aislerun-88e79.firebasestorage.app","messagingSenderId":"589354345822","appId":"1:589354345822:web:c254c32c792212af381bcf"};
+const $=s=>document.querySelector(s), esc=t=>String(t??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let DEV=[],COL="ss_devices",USER=null;
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth=firebase.auth(), db=firebase.firestore();
+$("#signin").onclick=()=>auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()).catch(e=>{$("#msg").textContent="Sign-in didn't work: "+e.message;});
+$("#signout").onclick=()=>auth.signOut();
+async function load(u){
+  $("#signin").hidden=!!u; $("#signout").hidden=!u; $("#who").textContent=u?u.email:""; $("#usage").hidden=true;
+  if(!u){ $("#msg").textContent="Sign in with the Google account that owns smAisle to see how many people play."; return; }
+  $("#msg").textContent="Loading…";
+  try{
+    const ds=await db.collection(COL).limit(10000).get();
+    DEV=ds.docs.map(d=>({id:d.id,...d.data()}));
+    $("#msg").textContent=""; draw(); $("#usage").hidden=false;
+  }catch(e){ $("#msg").textContent = e.code==="permission-denied" ? "This account can't view usage. Only the smAisle owner can." : "Couldn't load usage: "+e.message; }
+}
+auth.onAuthStateChanged(u=>{USER=u;load(u)});
+// Days are the player's local date, as the game uses them.
+const dayStr=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const ago=n=>dayStr(new Date(Date.now()-n*864e5)), num=n=>Number(n||0).toLocaleString();
+// One day's numbers from each device's history map h: {day: pieces placed, -1 = opened but not finished}.
+function dayStats(d){
+  const v=DEV.map(x=>x.h&&x.h[d]).filter(x=>x!==undefined&&x!==null), done=v.filter(x=>x>=0);
+  return {opened:v.length, done:done.length, avg:done.length?(done.reduce((a,b)=>a+b,0)/done.length).toFixed(1):"–", full:done.filter(x=>x>=15).length, best:done.length?Math.max(...done):"–"};
+}
+function draw(){
+  const today=ago(0), w=ago(6), m=ago(29), cnt=f=>DEV.filter(f).length, t=dayStats(today);
+  const tallyBy=k=>{const o={}; DEV.filter(d=>d.last>=m).forEach(d=>{const v=k==="desk"?(d.desk?"Computer":"Phone"):String(d[k]??"?"); o[v]=(o[v]||0)+1;}); return Object.entries(o).sort((a,b)=>b[1]-a[1]);};
+  const stat=(n,l)=>`<div class="stat"><b>${n}</b><span>${l}</span></div>`;
+  const tbl=(title,rows)=>`<div><h2>${title}</h2><table>${rows.map(([k,v])=>`<tr><td>${esc(k)}</td><td>${num(v)}</td></tr>`).join("")||`<tr><td class="muted">None yet</td><td></td></tr>`}</table></div>`;
+  const days=[]; for(let i=0;i<14;i++){ const d=ago(i), s=dayStats(d); days.push(`<tr><td style="white-space:nowrap">${new Date(d+"T12:00").toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})}</td><td>${s.opened}</td><td>${s.done}</td><td>${s.avg}</td><td>${s.best}</td><td>${s.full}</td><td>${cnt(x=>x.first===d)}</td></tr>`); }
+  $("#usage").innerHTML=`<div class="stats">${stat(t.opened,"opened today")}${stat(t.done,"finished today")}${stat(t.avg,"avg placed today")}${stat(t.best==="–"?"–":t.best+"/15","best score today")}${stat(cnt(d=>d.last>=w),"active this week")}${stat(cnt(d=>d.last>=m),"active this month")}${stat(DEV.length,"devices ever")}${stat(cnt(d=>d.first>=w),"new this week")}${stat(num(DEV.reduce((a,d)=>a+(+d.daily||0),0)),"puzzles finished, all time")}</div>
+  <p class="muted">Counts phones and computers, not people. Each one checks in when it opens the game for the day and again when it finishes the puzzle. Only the website version is counted, not the Claude link.</p>
+  <h2>Last 14 days</h2><table><tr><th>Day</th><th>Opened</th><th>Done</th><th>Avg</th><th>Best</th><th>15/15</th><th>New</th></tr>${days.join("")}</table>
+  <div class="two">
+  ${tbl("App version, active this month",tallyBy("v").map(([k,v])=>["v"+k,v]))}
+  ${tbl("Device, active this month",tallyBy("desk"))}
+  </div>`;
+}
+</script>
+</body>
+</html>

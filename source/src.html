@@ -1,0 +1,860 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script src="https://smaisle.github.io/gate.js" data-game="sdspell" data-name="Straight Down Spell"></script>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#f4efe1">
+<script>
+// smAisle look: "smaisle-dark" is shared by every smAisle game (off / on / auto = match phone). Off by default.
+(function(){var m='off';try{m=localStorage.getItem('smaisle-dark')||'off'}catch(e){}
+  var q=window.matchMedia?matchMedia('(prefers-color-scheme: dark)'):null,last=null;
+  window.applyMode=function(v){if(v)m=v;var navy=m==='on'||(m==='auto'&&q&&q.matches);var r=document.documentElement;
+    if(navy)r.setAttribute('data-mode','navy');else r.removeAttribute('data-mode');
+    var t=document.querySelector('meta[name=theme-color]');if(t)t.content=navy?'#121b2e':'#f4efe1';
+    // Tell the smAisle Daily app when the look changes live (does nothing on the web).
+    if(last!==null&&last!==navy){try{window.webkit&&webkit.messageHandlers&&webkit.messageHandlers.dg&&webkit.messageHandlers.dg.postMessage({cmd:'mode',navy:navy})}catch(e){}}
+    last=navy;return m};
+  if(q&&q.addEventListener)q.addEventListener('change',function(){if(m==='auto')applyMode()});applyMode()})();
+</script>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Straight Down Spell</title>
+<meta name="apple-mobile-web-app-title" content="SD Spell">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<meta name="description" content="Straight Down Spell: a daily falling-letter word game. Hold your words, or play it safe.">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&family=Libre+Baskerville:ital@0;1&family=Libre+Franklin:wght@700;800&display=swap">
+<style>
+/* The Daily 15's newspaper look on a 7-by-8 board. Letters fall; words light up; double tap a lit word to clear it. */
+:root{--paper:#f4efe1;--ink:#1a1814;--ink2:#4a453b;--fade:#8c8574;--red:#b3261e;--hi:#ffd23f;--hiE:#e0a800;--dia:#bfe0f5;--diaE:#3b8ec2;
+  --paper2:#d9d2bf;--well:#cfc7b1;--ghost:#e8e1cd;--card:#fffdf6;--btn:#1a1814;--btn-ink:#fffdf6;--hard:#1a1814;--shadow:rgba(0,0,0,.25);--dot:rgba(0,0,0,.035);--hiY:#ffe27a;
+  --head:"Playfair Display",Georgia,serif;--body:"Libre Baskerville",Georgia,serif;--sans:"Libre Franklin","Helvetica Neue",Arial,sans-serif;--cell:34px;color-scheme:light}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0;touch-action:manipulation}
+body{background:var(--paper);background-image:radial-gradient(var(--dot) 1px,transparent 1px);background-size:4px 4px;color:var(--ink);font-family:var(--body);overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+button{font-family:var(--sans);cursor:pointer;touch-action:manipulation;color:var(--ink)}
+#app{height:100%;max-width:540px;margin:0 auto;display:flex;flex-direction:column;gap:5px;padding:6px max(2px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 20px) max(2px,env(safe-area-inset-left,0px))}
+.top{display:flex;align-items:center;gap:7px;border-bottom:3px double var(--ink);padding:2px 0 6px;margin:0 10px}
+#pno{flex:1;font-family:var(--head);font-weight:900;font-size:20px;white-space:nowrap}
+.box{display:flex;align-items:center;gap:6px;border:2px solid var(--ink);padding:0 8px;background:var(--card);height:32px}
+.box small{font-family:var(--sans);font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}
+.box b{font-family:var(--head);font-weight:900;font-size:19px;font-variant-numeric:tabular-nums}
+/* Next letter: a full-size tile right above the board, where it will fall in. */
+#col{display:flex;flex-direction:column;align-items:stretch;gap:6px}
+#nextRow{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;width:100%;height:calc(var(--cell)*1.1)}
+#nextRow .nl{text-align:right}#nextRow .nr{display:flex;align-items:center;gap:8px}
+#nextRow .nr #nextT{width:calc(var(--cell)*.9);height:calc(var(--cell)*.9);font-size:calc(var(--cell)*.52)!important}
+#nextRow span,#nextRow em{white-space:nowrap}
+#nextRow span{font-family:var(--sans);font-weight:900;font-size:13px;letter-spacing:.16em;text-transform:uppercase}
+#nextRow em{font-family:var(--sans);font-style:normal;font-weight:800;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--red);min-width:40px}
+#nextT,#nowT{width:calc(var(--cell)*1.1);height:calc(var(--cell)*1.1);font-size:calc(var(--cell)*.64)!important;outline:2.5px solid var(--ink);outline-offset:2px;border-radius:6px}
+#nowT{outline-color:#b3261e;outline-width:3px}
+#fallT.fall{outline:3px solid #b3261e;outline-offset:-1px}#nextRow .gap{width:8px}
+#nowT.fin::after{content:'';position:absolute;inset:1px;border:2.5px solid #b07d00;border-radius:4px}
+#nextT:not(.q){opacity:.55;outline-style:dashed!important;outline-color:#4a453b!important}
+#nextT.q{background:#1a1814!important;color:#ffd23f}
+#menuBtn{width:34px;height:32px;padding:0;border-radius:4px;background:transparent;border:1.5px solid var(--ink);font-size:17px}
+#msg{height:38px;margin:0 10px;display:flex;align-items:center;justify-content:center;text-align:center;font-style:italic;font-size:14px;color:var(--ink2);line-height:1.25}
+#msg.warn{color:var(--red);font-style:normal;font-family:var(--sans);font-weight:800;font-size:14px}
+#left.warn{color:var(--red)}
+#lrow{display:flex;justify-content:center;align-items:center;gap:14px}#lrow #left{margin:0}
+#gauge{display:flex;align-items:flex-end;gap:2px;font-family:var(--sans);font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
+#gauge span{margin-right:4px}#gauge i{width:5px;border:1.5px solid var(--ink2);border-radius:1px}#gauge i:nth-of-type(1){height:6px}#gauge i:nth-of-type(2){height:8px}#gauge i:nth-of-type(3){height:10px}#gauge i:nth-of-type(4){height:12px}#gauge i:nth-of-type(5){height:14px}
+#gauge i.on{background:var(--ink);border-color:var(--ink)}#gauge.max i.on{background:var(--red);border-color:var(--red)}
+.cell.fin::after,#fallT.fin::after{content:'';position:absolute;inset:1px;border:2.5px solid #b07d00;border-radius:4px;pointer-events:none}
+.cell.fin::before,#fallT.fin::before{content:'★';position:absolute;right:7%;top:4%;font-size:calc(var(--cell)*.24);line-height:1;color:#b07d00}
+#msg.good{color:var(--ink);font-style:normal;font-family:var(--sans);font-weight:800;font-size:15px}
+#stage{flex:none;display:grid;place-items:center}
+#app::after{content:'';flex:1 1 0}   /* spare height goes under the arrows, so the board and arrows sit up top together */
+#board{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;background:var(--paper2);border-radius:8px;padding:3px;display:grid;grid-template-columns:repeat(7,var(--cell));grid-auto-rows:var(--cell);gap:3px;position:relative;touch-action:none}
+.cell{position:relative;background:var(--paper2);display:grid;place-items:center;font-family:var(--sans);font-weight:800;font-size:calc(var(--cell)*.58);line-height:1}
+/* Style A: raised ivory game tiles on a recessed tray. */
+.cell{font-size:calc(var(--cell)*.58)!important;font-weight:900;color:#1a1814;border-radius:5px;background:var(--well)!important;box-shadow:inset 0 1px 2px rgba(0,0,0,.15)}
+.cell sub{position:absolute;right:7%;bottom:6%;font-size:calc(var(--cell)*.27);font-weight:800;line-height:1}
+.cell.on,.cell.fall{background:linear-gradient(#fffdf3,#f1e6c8)!important;box-shadow:0 2px 0 #b9a77a,0 3px 4px rgba(0,0,0,.25)}
+.cell.fall{outline:2px solid var(--ink);outline-offset:-2px}
+#fallT{position:absolute;width:var(--cell);height:var(--cell);z-index:4;pointer-events:none;will-change:top,left}
+.cell.lit{background:linear-gradient(#ffe680,#ffcf2e)!important;box-shadow:0 2px 0 #c99a00,0 3px 4px rgba(0,0,0,.25)}
+.cell.dia{background:linear-gradient(#d8eefb,#a9d4f0)!important;box-shadow:0 2px 0 #3b8ec2,0 3px 4px rgba(0,0,0,.25)}
+.cell.lit.dia{background:linear-gradient(135deg,#ffd84a 50%,#bfe0f5 50%)!important}
+.cell.ghost{background:repeating-linear-gradient(45deg,var(--ghost) 0 4px,var(--paper2) 4px 8px)!important}
+.cell.danger{outline:2px solid var(--red);outline-offset:-2px}
+.cell.dbl:not(.lit):not(.dia){background:linear-gradient(#ffe4dc,#f6b9a8)!important;box-shadow:0 2px 0 #c97b66,0 3px 4px rgba(0,0,0,.25)}
+.cell i.x2,#nextT i.x2{position:absolute;left:6%;top:5%;font-style:normal;font-size:calc(var(--cell)*.22);font-weight:900;color:var(--red);line-height:1}
+
+#lefts{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:4px 0 10px}
+#lefts div{border:1.5px solid var(--ink);border-radius:4px;background:var(--card);text-align:center;font-family:var(--sans);font-weight:900;font-size:16px;padding:3px 0 2px;line-height:1.1}
+#lefts div small{display:block;font-size:10px;font-weight:800;color:var(--ink2)}
+#lefts div.zero{opacity:.3}#lefts div.v{background:#fff3c4}
+.lsub{text-align:center;font-family:var(--sans);font-size:12px;font-weight:700;color:var(--ink2);margin:0 0 4px}
+.cell.on{background:#fffdf6}
+.cell.lit{background:var(--hi);box-shadow:inset 0 0 0 2px var(--hiE)}
+.cell.dia{background:var(--dia);box-shadow:inset 0 0 0 2px var(--diaE)}
+.cell.lit.dia{background:linear-gradient(135deg,var(--hi) 50%,var(--dia) 50%)}
+.cell.fall{background:#fffdf6;outline:2px solid var(--ink);outline-offset:-2px;z-index:2}
+.cell.ghost{background:repeating-linear-gradient(45deg,var(--ghost) 0 4px,var(--paper2) 4px 8px)}
+.cell.pick{animation:pick .25s ease-out}
+.cell.boom{animation:boom .35s ease-in forwards}
+/* The word in the Hold or Clear pop-up keeps its colors but floats up off the board, bigger, gently bobbing. */
+#strike{position:absolute;inset:0;width:100%;height:100%;z-index:5;pointer-events:none;overflow:visible}
+#strike line{stroke:#b3261e;stroke-width:5;stroke-linecap:round;opacity:.85;transition:stroke-dashoffset .35s ease-out}
+.aw.cur{background:#fff3c4;box-shadow:inset 4px 0 0 #b3261e}.aw.both{background:#eef5e4}.aw.both .w{font-size:15px}.aw{padding-left:8px!important;padding-right:4px}
+#board .cell.ask{z-index:3;animation:askF 1.1s ease-in-out infinite alternate;box-shadow:0 8px 14px rgba(0,0,0,.35),0 2px 0 rgba(0,0,0,.25)!important}
+@keyframes askF{from{transform:translateY(-3px) scale(1.14)}to{transform:translateY(-7px) scale(1.2)}}
+@keyframes askP{to{filter:brightness(.85)}}
+#ask{position:fixed;left:0;right:0;bottom:0;z-index:15;display:flex;justify-content:center;padding:0 max(10px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 14px) max(10px,env(safe-area-inset-left,0px))}
+#ask.top{bottom:auto;top:0;padding-top:calc(env(safe-area-inset-top,0px) + 6px);padding-bottom:0}
+#askList{max-height:34vh;overflow-y:auto}
+#askNext{display:flex;align-items:center;gap:6px;margin:0 0 5px;font-family:var(--sans);font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
+#askNext .t{position:relative;display:inline-grid;place-items:center;width:30px;height:30px;border-radius:5px;background:var(--card);border:1.5px solid #1a1814;color:#1a1814;font-size:17px;font-weight:900;letter-spacing:0}
+#askNext .t sub{position:absolute;right:2px;bottom:0;font-size:9px}#askNext .t.dbl{background:#ffd9e0}#askNext .t.q{background:#1a1814;color:#ffd23f}#askNext .t.n2{opacity:.6;border-style:dashed}
+#ask .in{width:100%;max-width:480px;background:var(--paper);border:2px solid var(--ink);box-shadow:4px 5px 0 var(--ink);padding:8px 10px}
+#ask .ah{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:0 0 4px}
+#peek{border:1.5px solid var(--ink);border-radius:6px;background:var(--card);font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;padding:4px 7px;white-space:nowrap;touch-action:none;-webkit-touch-callout:none}
+#ask.peek .in{opacity:.06}
+#ask h3{margin:0;text-align:left;font-family:var(--sans);font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2)}
+.aw{display:flex;align-items:center;gap:10px;border-top:1px solid var(--fade);padding:5px 0}
+.aw .w{flex:1;font-family:var(--sans);font-weight:800;font-size:19px;letter-spacing:.06em}
+.aw .w small{display:block;font-size:11px;letter-spacing:.08em;color:var(--ink2);text-transform:uppercase}
+.aw .p{font-family:var(--head);font-weight:900;font-size:21px}
+.aw button,#askHold{height:38px;border:2px solid var(--ink);font-weight:800;font-size:14px;letter-spacing:.06em;text-transform:uppercase;box-shadow:2px 3px 0 var(--hard)}
+.aw button{background:var(--ink);color:var(--btn-ink);padding:0 16px}
+#askHold{width:100%;background:var(--card);margin-top:4px}
+.cell.danger{background:#ecc9c3}
+@keyframes pick{50%{transform:scale(1.15)}}
+@keyframes boom{to{transform:scale(.2);opacity:0}}
+.pop{position:absolute;z-index:5;font-family:var(--sans);font-weight:800;font-size:16px;color:var(--ink);background:var(--card);border:2px solid var(--ink);padding:1px 6px;pointer-events:none;animation:up 1s ease-out forwards;white-space:nowrap}
+.pop.d{background:var(--dia)}
+@keyframes up{to{transform:translateY(-36px);opacity:0}}
+#bar{display:flex;gap:8px;margin:4px 10px 0}
+#bar button{flex:1;height:52px;border:2px solid var(--ink);background:var(--card);font-weight:800;font-size:22px;box-shadow:2px 3px 0 var(--hard);border-radius:2px}
+#bar button:active{transform:translate(2px,3px);box-shadow:none}
+#bar #goBtn{background:var(--ink);color:var(--btn-ink);font-size:14px;letter-spacing:.06em;text-transform:uppercase}
+#left{text-align:center;font-family:var(--sans);font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink2);margin-top:6px}
+.sheet{position:fixed;inset:0;display:grid;place-items:center;background:rgba(26,24,20,.55);z-index:20;padding:16px}
+.card{background:var(--paper);border:3px double var(--ink);padding:18px;width:100%;max-width:400px;max-height:90%;overflow:auto;display:flex;flex-direction:column;gap:10px;box-shadow:6px 6px 0 var(--shadow)}
+.card h2{font-family:var(--head);font-weight:900;font-size:28px;margin:0;text-align:center;border-bottom:1px solid var(--ink);padding-bottom:6px}
+#menu h2,#settings h2{text-align:left}
+.card b{font-family:var(--sans);font-weight:800}
+#togs{position:absolute;top:10px;right:10px;display:flex;gap:5px}
+#mSound{display:flex;align-items:center;gap:4px;background:transparent;border:1.5px solid var(--ink);border-radius:6px;padding:3px 6px;font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);line-height:1.1}
+#mSound b{font-size:10px}#mSound.on{background:var(--ink);color:var(--btn-ink)}
+.helpsec{border-top:1px solid var(--ink);padding-top:8px;display:flex;flex-direction:column;gap:6px}
+.helpsec h3{margin:0;text-align:center;font-family:var(--sans);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink2)}
+.helpsec div{display:flex;gap:8px}.helpsec .go{flex:1;padding:9px 4px;font-size:12px;margin:0}
+.card .go{margin:0}
+.pair{display:flex;gap:8px}.pair .go{flex:1;padding:9px 4px;font-size:12px}
+details.more{border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);padding:2px 0}
+details.more summary{list-style:none;cursor:pointer;text-align:center;font-family:var(--sans);font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);padding:8px 0}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary::after{content:' ▸';font-size:11px}details.more[open] summary::after{content:' ▾'}
+.stars{width:100%;border-collapse:collapse;margin-top:6px;text-align:center;background:var(--card)}
+.stars th,.stars td{border:2px solid var(--ink);padding:6px 4px}
+.stars th{font-family:var(--sans);font-size:13px;font-weight:800}
+.stars tr:first-child th{background:var(--ink);color:var(--btn-ink);font-size:15px}
+.stars td{font-size:18px;line-height:1;letter-spacing:-2px;white-space:nowrap}
+.big{font-family:var(--head);font-weight:900;font-size:56px;text-align:center;line-height:1;margin:0;letter-spacing:-2px}
+.dpts{font-family:var(--sans);font-weight:800;font-size:15px;letter-spacing:.06em;text-transform:uppercase}.dpts b{font-family:var(--head);font-size:30px;letter-spacing:0}
+#dStreak{margin:0;font-family:var(--sans);font-weight:800;font-size:14px;letter-spacing:.04em}
+.donegrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.donegrid .go{padding:9px 4px;font-size:13px}
+.sstreak{display:flex;flex-direction:column;gap:4px;font-family:var(--head);font-weight:900;font-size:20px;text-align:left}
+.sstreak div{display:flex;align-items:baseline}.sstreak em{font-style:normal;display:inline-block;width:1.4em}.card .sstreak b{margin-left:auto;font-family:var(--head);font-weight:900}
+.shead{margin:4px 0 0;text-align:left;font-family:var(--head);font-weight:900;font-size:16px;border-bottom:2px solid var(--ink);padding-bottom:3px}
+.sweek{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;border:2px solid var(--ink);border-radius:3px;padding:4px}
+.sweek div{border:1.5px solid var(--ink);border-radius:3px;background:var(--card);padding:4px 0;min-height:46px;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:11px;line-height:1.1}
+.sweek span{font-family:var(--sans);font-weight:800;font-size:10px;letter-spacing:.04em}
+.sweek .off{opacity:.45;border-color:var(--fade)}.sweek .x{font-family:var(--sans);font-weight:700;color:var(--ink2)}
+.sweeksum{font-family:var(--sans);font-weight:700;font-size:13px}
+.statgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.statgrid div{border:2px solid var(--ink);border-radius:3px;background:var(--card);padding:7px 2px 6px;display:flex;flex-direction:column;gap:2px}
+.statgrid b{font-family:var(--sans);font-weight:900;font-size:22px;line-height:1.1}
+.statgrid span{font-family:var(--sans);font-weight:800;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em}
+#cover .links{display:flex;gap:8px;align-items:center;font-family:var(--sans);font-weight:800;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.more-sm{border-top:1px solid var(--ink);padding-top:10px;display:flex;flex-direction:column;gap:8px}
+.more-sm h3{margin:0;font-family:var(--sans);font-size:12px;letter-spacing:.06em;font-weight:800;color:var(--ink2)}
+#dGames{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+#dGames a{display:block;width:38px;height:38px;border-radius:9px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+#dGames img{width:100%;height:100%;display:block}
+.dlinks{display:flex;gap:8px;justify-content:center;align-items:center;font-family:var(--sans);font-weight:800;font-size:12px;letter-spacing:.08em;text-transform:uppercase}
+.dlinks button{background:none;border:none;padding:4px 2px;font:inherit;letter-spacing:inherit;text-transform:inherit;color:var(--ink);text-decoration:underline}
+.dlinks i{font-family:var(--body);text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink2)}
+#cover .links button{background:none;border:none;padding:6px 2px;font:inherit;letter-spacing:inherit;text-transform:inherit;color:var(--ink);text-decoration:underline}
+#cvStreak{font-family:var(--sans);font-weight:800;font-size:14px;letter-spacing:.04em}
+.smline{display:flex;align-items:center;gap:8px;background:none;border:none;padding:6px;margin-top:6px;color:var(--ink);font-family:var(--sans);font-size:14px}
+.smline b{font-weight:800}.smline em{font-family:var(--body);color:var(--ink2);font-size:13px}
+.smico{display:inline-block;flex:none;width:24px;height:24px;background-size:cover;border-radius:22%;background-image:url(data:image/png;base64,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)}
+#stars{min-width:12px;text-align:center;letter-spacing:-3px;font-size:11px}
+@media (max-width:420px){.top{gap:5px}.box{padding:0 6px;gap:4px}.box small{letter-spacing:.05em;font-size:9px}#pno{font-size:18px}}
+.rules{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:10px}
+#help .rules li{font-family:var(--sans);font-weight:500;font-size:15px;line-height:1.42}
+#help .rules li b{font-weight:800}#help .rules li.fine{font-family:var(--body);font-size:11.5px;color:var(--ink2)}
+.hnav{display:flex;align-items:center;justify-content:space-between;font-family:var(--sans)}
+.hnav button{background:none;border:none;font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);padding:6px 4px;min-width:72px}
+.hnav button:disabled{visibility:hidden}#hDots{display:flex;gap:6px}#hDots i{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--ink)}#hDots i.on{background:var(--ink)}
+@media (max-height:720px){#help .rules li{font-size:14px;line-height:1.35}}
+.sw{display:inline-block;width:12px;height:12px;vertical-align:-1px;border:1.5px solid var(--ink)}
+.go{display:block;width:100%;padding:12px;border:2px solid var(--ink);border-radius:3px;background:var(--btn);color:var(--btn-ink);font-weight:800;font-size:16px;letter-spacing:.08em;text-transform:uppercase;margin-top:8px}
+.go.alt{background:var(--card);color:var(--ink)}
+.ver{text-align:center;font-family:var(--sans);font-size:11px;color:var(--fade);margin-top:10px}
+#cover{background:var(--paper);background-image:radial-gradient(var(--dot) 1px,transparent 1px);background-size:4px 4px;z-index:30}
+#cover .in{display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:340px;text-align:center}
+#cover .mh{border-top:3px double var(--ink);border-bottom:3px double var(--ink);padding:8px 0;width:100%}
+#cover h1{font-family:var(--head);font-weight:900;font-size:clamp(36px,11vw,48px);line-height:1;margin:0 0 8px}
+#cover .ln{display:flex;justify-content:space-between;font-family:var(--sans);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-top:6px;color:var(--ink2)}
+#cover .tag{font-style:italic;font-size:15px}
+#cvStats{display:flex;width:100%;background:none;border:none;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);padding:6px 0;color:var(--ink)}
+#cvStats div{flex:1;display:flex;flex-direction:column}#cvStats div+div{border-left:1px solid var(--fade)}
+body.demo #msg{min-height:64px}
+#msg.coach{height:auto;min-height:38px;flex-direction:column;gap:2px;background:var(--ink);color:var(--btn-ink);font-style:normal;font-family:var(--sans);font-weight:700;font-size:15px;padding:7px 12px;border-radius:6px}
+#msg.coach small{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--hi);font-weight:800}
+#msg.coach b{color:var(--hi)}
+.cell.tgt{outline:3px dashed var(--ink);outline-offset:-3px;animation:askP .6s ease-in-out infinite alternate}
+#ask button.off{opacity:.35}
+.qpic{display:flex;justify-content:center;gap:4px;margin:6px 0 12px;min-height:44px;flex-wrap:wrap}
+.qt{position:relative;width:40px;height:40px;border-radius:5px;display:grid;place-items:center;font-family:var(--sans);font-weight:900;font-size:23px;background:linear-gradient(#fffdf3,#f1e6c8);box-shadow:0 2px 0 #b9a77a,0 3px 4px rgba(0,0,0,.25)}
+.qt sub{position:absolute;right:3px;bottom:2px;font-size:10px;font-weight:800}
+.qt.l{background:linear-gradient(#ffe680,#ffcf2e);box-shadow:0 2px 0 #c99a00,0 3px 4px rgba(0,0,0,.25)}
+.qt.d{background:linear-gradient(#d8eefb,#a9d4f0);box-shadow:0 2px 0 #3b8ec2,0 3px 4px rgba(0,0,0,.25)}
+.qt.x{background:linear-gradient(#ffe4dc,#f6b9a8)}.qt i{position:absolute;left:3px;top:2px;font-style:normal;font-size:9px;color:var(--red)}
+.qt.e{background:var(--well);box-shadow:inset 0 1px 2px rgba(0,0,0,.15)}
+.qbtns{display:flex;gap:8px;justify-content:center}.qbtns span{border:2px solid var(--ink);padding:6px 12px;font-family:var(--sans);font-weight:800;font-size:13px;letter-spacing:.06em;text-transform:uppercase;box-shadow:2px 3px 0 var(--hard);background:var(--card)}.qbtns span.k{background:var(--ink);color:var(--btn-ink)}
+#quick{z-index:40}
+#qText{font-size:15px;line-height:1.45;text-align:center;margin:0}
+#qDots{display:flex;justify-content:center;gap:6px;margin:14px 0 2px}#qDots span{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--ink)}#qDots span.on{background:var(--ink)}
+.qskip{display:block;margin:10px auto 0;background:none;border:0;font-weight:700;font-size:13px;color:var(--ink2);text-decoration:underline}
+#cvStats b{font-family:var(--head);font-weight:900;font-size:22px}#cvStats span{font-family:var(--sans);font-weight:800;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+.big{font-family:var(--head);font-weight:900;font-size:44px;text-align:center;margin:4px 0}
+.res{text-align:center;font-size:15px;margin:4px 0}
+#dLost{margin:0;font-family:var(--sans);font-size:14px}#dLost.lost{color:var(--red)}
+.wl{text-align:center;font-family:var(--sans);font-weight:700;font-size:13px;color:var(--ink2);line-height:1.5}
+.dw{cursor:pointer;text-decoration:underline dotted;text-underline-offset:3px}.tapnote{margin:-6px 0 0;font-size:11px;font-style:italic;color:var(--ink2);text-align:center}
+
+#def{z-index:45}#def .card{text-align:left}#defW{margin:0 0 6px;font-family:var(--sans);letter-spacing:.08em;font-size:22px}#defT p{margin:0 0 8px;font-size:15px;line-height:1.4}#defT i{color:var(--ink2)}#defT .dsm{font-size:13px}#defT a{color:var(--ink)}
+/* Navy: the shared smAisle dark look (picked in Settings > Dark mode). Letter tiles stay light. */
+:root[data-mode=navy]{--paper:#121b2e;--paper2:#0d1424;--well:#1c2a44;--ghost:#24365a;--card:#1c2a44;--ink:#efe6cc;--ink2:#c9b98f;--fade:#8792ab;--red:#e0402f;
+  --btn:#c9a961;--btn-ink:#121b2e;--hard:#05080f;--shadow:#05080f;--dot:rgba(255,255,255,.035);color-scheme:dark}
+:root[data-mode=navy] .go:not(.alt){border-color:#c9a961}
+:root[data-mode=navy] .cell.on,:root[data-mode=navy] .cell.fall{background:linear-gradient(#fbf5e3,#efe3c4)!important;box-shadow:0 2px 0 #c9a961,0 3px 4px rgba(0,0,0,.5)}
+:root[data-mode=navy] .cell.fall{outline-color:#efe6cc}
+:root[data-mode=navy] #nowT{outline-color:#e0402f}
+:root[data-mode=navy] #nextT:not(.q){outline-color:#c9b98f!important}
+:root[data-mode=navy] #lefts div.v,:root[data-mode=navy] .aw.cur{background:rgba(255,226,122,.18)}
+:root[data-mode=navy] .aw.both{background:rgba(140,200,110,.18)}
+:root[data-mode=navy] .sheet{background:rgba(3,6,12,.6)}
+.setrow{border-top:1px solid var(--ink);padding-top:10px;display:flex;flex-direction:column;align-items:center;gap:6px;font-family:var(--sans)}
+.setrow b{font-size:12px;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+.setrow small{font-size:11px;color:var(--fade);text-align:center}
+.seg{display:flex;border:2px solid var(--ink);border-radius:3px;overflow:hidden}
+.seg button{border:none;background:var(--card);color:var(--ink);font-weight:800;font-size:12px;letter-spacing:.06em;text-transform:uppercase;padding:7px 12px}
+.seg button+button{border-left:2px solid var(--ink)}
+.seg button.sel{background:var(--btn);color:var(--btn-ink)}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top"><div id="pno">No. 1</div>
+    <div class="box"><small>Score</small><b id="score">0</b></div>
+    <div class="box"><small>Stars</small><b id="stars">–</b></div>
+    <button id="menuBtn" aria-label="Menu">☰</button></div>
+  <div id="msg"></div>
+  <div id="stage"><div id="col"><div id="nextRow"><div class="nl"><span>Now</span></div><div id="nowT" class="cell on"></div><div class="nr"><span>Next</span><div id="nextT" class="cell on"></div><em id="nextNote"></em></div></div><div id="board"></div></div></div>
+  <div id="bar"><button id="lBtn" aria-label="Left">◀︎</button><button id="dBtn" aria-label="Drop">▼︎</button><button id="rBtn" aria-label="Right">▶︎</button><button id="goBtn" hidden>Finish</button></div>
+  <div id="lrow"><div id="left"></div><div id="gauge" aria-label="Speed"><span>Speed</span><i></i><i></i><i></i><i></i><i></i></div></div>
+</div>
+
+<div id="ask" hidden><div class="in"><div class="ah"><h3 id="askHead">Word made · game paused</h3><button id="peek">👁 Hold to see board</button></div><div id="askNext"></div><div id="askList"></div><button id="askHold">Hold (keep building)</button></div></div>
+
+<div class="sheet" id="cover"><div class="in">
+  <div class="mh"><h1>Straight Down Spell</h1><div class="ln"><span id="cvDate"></span><span id="cvNo"></span></div></div>
+  <div class="tag">Hold your words, or play it safe.</div>
+  <div id="cvStreak" hidden></div>
+  <button id="cvStats" hidden aria-label="Your stats"></button>
+  <button class="go" id="coverGo">Play today's game</button>
+  <div class="links"><button id="coverPast">Archive</button><span>·</span><button id="coverStats">Stats</button><span>·</span><button id="coverHow">How to play</button></div>
+  <button id="coverSm" class="smline"><i class="smico"></i><b>smAisle Daily</b><em>Back to all the daily games ›</em></button>
+</div></div>
+
+<div class="sheet" id="help" hidden><div class="card">
+  <h2>How to Play</h2>
+  <ul class="rules hp">
+    <li><b>Goal:</b> score as many points as you can from today's <b>100 letters</b>. Everyone gets the same letters in the same order.</li>
+    <li><b>Move and drop:</b> tap a column to move the falling letter there, then tap it again to drop it. ◀︎ ▶︎ ▼︎ work too.</li>
+    <li><b>Make words:</b> 3 or more letters across (left to right only), down or up light up <span class="sw" style="background:var(--hi)"></span>. Diagonal words <span class="sw" style="background:var(--dia)"></span> score <b>double</b>. A pink <b>2×</b> vowel doubles any word it's in, and they stack.</li>
+    <li><b>Hold or clear:</b> each new word pauses the game. <b>Clear</b> it for its points now, or <b>Hold</b> it and build a longer word for more (CAR → CARDS). Double tap a held word to clear it, or press and hold it to choose again.</li>
+  </ul>
+  <ul class="rules hp" hidden>
+    <li><b>Points:</b> each letter has a value, like A, B, C, Deal. Words of 5+ letters get +5 for each extra letter.</li>
+    <li><b>⚠️ Final 10:</b> the last 10 letters are a surprise (Next shows ?) and have a gold edge and ★. Any word that uses one scores <b>double</b>.</li>
+    <li><b>⛓ Chains:</b> when you clear a word, the letters above drop down. If they land in a new word, it's a chain and scores <b>double</b>. Careful: the drop can also break up a word you were holding.</li>
+  </ul>
+  <ul class="rules hp" hidden>
+    <li><b>Stars:</b> earn them with points.<table class="stars"><tr><th>Points</th><th>90+</th><th>180+</th><th>300+</th></tr><tr><th>Stars</th><td>⭐</td><td>⭐⭐</td><td>⭐⭐⭐</td></tr></table></li>
+    <li><b>Game over</b> when the letters stack to the top, or as soon as the last letter lands (if it makes a word, you can still clear that one). Like Scrabble, <b>every letter left on the board takes its points off</b>, and words you're still holding don't score. Clear them before the end!</li>
+    <li class="fine">The website version sends an anonymous check-in so we can count players: the day, your score and the game version. Never your name, contacts or location.</li>
+  </ul>
+  <div class="hnav"><button id="hPrev">‹ Back</button><span id="hDots"></span><button id="hNext">Next ›</button></div>
+  <div style="display:flex;gap:8px"><button class="go alt" id="helpDemo" style="flex:1">Play the demo</button><button class="go" id="helpGo" style="flex:1.3">Let's play</button></div>
+  <div class="ver" id="ver"></div>
+</div></div>
+
+<div class="sheet" id="quick" hidden><div class="card">
+  <div class="qpic" id="qPic"></div>
+  <h2 id="qTitle"></h2>
+  <p id="qText"></p>
+  <div id="qDots"></div>
+  <button class="go" id="quickGo">Next</button>
+  <button class="qskip" id="qSkip">Skip intro</button>
+</div></div>
+
+<div class="sheet" id="demoDone" hidden><div class="card" style="text-align:center">
+  <h2>You've got it!</h2>
+  <p id="ddText" style="font-size:15px;line-height:1.45;margin:0 0 6px"></p>
+  <p style="font-size:14px;line-height:1.45;margin:0;color:var(--ink2)">Diagonal words and chains score double too. When the game ends, letters left on the board cost you their points, so don't hold too long.</p>
+  <button class="go" id="ddGo">Play today's game</button>
+  <button class="go alt" id="ddAgain">Play the demo again</button>
+</div></div>
+
+<div class="sheet" id="menu" hidden><div class="card" style="position:relative">
+  <h2>Menu</h2>
+  <p class="lsub" id="lTot"></p>
+  <button class="go" id="mClose">Back to game</button>
+  <div class="pair"><button class="go alt" id="mPast">Archive</button><button class="go alt" id="mStats">Stats</button></div>
+  <div class="pair"><button class="go alt" id="mHow">How to play</button><button class="go alt" id="mDemo">Play the demo</button></div>
+  <details class="more" id="leftsBox"><summary>Letters still to come</summary><p class="lsub" id="lX2"></p><div id="lefts"></div></details>
+  <div class="pair"><button class="go alt" id="mCover">Home screen</button><button class="go alt" id="mDaily" style="text-transform:none;background:var(--hiY);color:#1a1814">‹ smAisle Daily</button></div>
+  <div class="helpsec" id="testSec"><h3>Testing</h3><div><button class="go alt" id="mRestart">Restart today's game</button><button class="go alt" id="mEnd">Try the ending</button></div></div>
+  <button class="go alt" id="mSet">Settings</button>
+  <div class="ver" id="menuVer"></div>
+</div></div>
+
+<div class="sheet" id="settings" hidden><div class="card" style="position:relative">
+  <h2>Settings</h2>
+  <div class="setrow"><b>Sound</b><button id="mSound" aria-label="Sound"></button></div>
+  <div class="setrow"><b>Dark mode</b><div class="seg" id="segDark"><button data-v="off">Off</button><button data-v="on">On</button><button data-v="auto">Match phone</button></div><small>On uses Navy. Match phone switches with your phone.</small></div>
+  <button class="go" id="setBack">Back to the menu</button>
+</div></div>
+
+<div class="sheet" id="done" hidden><div class="card" style="text-align:center">
+  <h2 id="dTitle">Game over</h2>
+  <div class="big" id="dStars"></div>
+  <div class="dpts"><b id="dScore"></b> points</div>
+  <p id="dRes" style="margin:0;font-weight:700"></p>
+  <p id="dWhy" style="margin:0;font-style:italic;font-size:14px;line-height:1.35"></p>
+  <p id="dStreak" hidden></p>
+  <details class="more" id="dMore"><summary id="dMoreT">Your words</summary>
+    <p class="wl" id="dWords"></p>
+    <p id="dTap" class="tapnote" hidden>Tap a word to see what it means</p>
+    <p id="dLost" hidden></p></details>
+  <button class="go" id="dShare">Share result</button>
+  <div class="pair"><button class="go alt" id="dAgain">Play again</button><button class="go alt" id="dClose">See the board</button></div>
+  <div class="dlinks"><button id="dPast">Archive</button><span>·</span><button id="dStats">Stats</button><span>·</span><i>New letters at midnight</i></div>
+  <div class="more-sm"><button class="go alt" id="dDaily" style="text-transform:none;background:var(--hiY);color:#1a1814">‹ smAisle Daily</button>
+    <h3>More smAisle games</h3><div id="dGames"></div></div>
+</div></div>
+
+<div class="sheet" id="def" hidden><div class="card"><h3 id="defW"></h3><div id="defT"></div><button class="go" id="defOk">Close</button></div></div>
+<div class="sheet" id="stats" hidden><div class="card" style="text-align:center">
+  <h2>Your Stats</h2>
+  <div id="statStreak" class="sstreak"></div>
+  <h3 class="shead">This week</h3>
+  <div id="statWeek" class="sweek"></div>
+  <div id="statWeekSum" class="sweeksum"></div>
+  <h3 class="shead">All time</h3>
+  <div id="statGrid" class="statgrid"></div>
+  <p style="margin:0;font-size:12px;font-style:italic;color:var(--ink2)">Counts your first play of each daily game. Replays and the demo don't count.</p>
+  <button class="go alt" id="statsBack">Back</button>
+</div></div>
+
+<div class="sheet" id="past" hidden><div class="card">
+  <h2>Archive</h2>
+  <p style="margin:0;font-size:13px" id="pastNote">Missed a day? Play it here. It counts, but it's marked as played late.</p>
+  <div id="pastList" style="display:flex;flex-direction:column;gap:7px;max-height:52vh;overflow-y:auto"></div>
+  <button class="go alt" id="pastBack">Back</button>
+</div></div>
+
+<script>
+const VERSION='3.12',VDATE='Nov 2',TITLE='Straight Down Spell',CODE='ss';
+const FB_KEY='AIzaSyAlbSCTpAiK-1tojkyWrY3QuJsSzILHSfs',FB_PROJ='aislerun-88e79';
+const $=id=>document.getElementById(id);
+const store={get(k,d){try{const v=localStorage.getItem(CODE+'_'+k);return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(CODE+'_'+k,v)}catch(e){}}};
+// No pinch or double-tap zoom (iOS Safari ignores user-scalable=no, so block its gesture events too).
+for(const ev of['gesturestart','gesturechange'])document.addEventListener(ev,e=>e.preventDefault(),{passive:false});
+let lastTouch=0;document.addEventListener('touchend',e=>{const t=Date.now();if(t-lastTouch<350)e.preventDefault();lastTouch=t},{passive:false});
+
+const DICT=new Set('__WORDS__'.split(/\s+/));
+// Letter points and how often each letter comes up (same as A, B, C, Deal).
+const PTS={A:1,B:3,C:3,D:2,E:1,F:4,G:2,H:4,I:1,J:8,K:5,L:1,M:3,N:1,O:1,P:3,Q:10,R:1,S:1,T:1,U:1,V:4,W:4,X:8,Y:4,Z:10};
+const FREQ={A:9,B:2,C:2,D:4,E:12,F:2,G:3,H:2,I:9,J:1,K:1,L:4,M:2,N:6,O:8,P:2,Q:1,R:6,S:4,T:6,U:4,V:2,W:2,X:1,Y:2,Z:1};
+const BAG=Object.entries(FREQ).flatMap(([l,n])=>Array(n).fill(l));
+const W=7,H=8,TOTAL=100;   // 7 wide, 8 high
+
+// ---------- Days ----------
+const LAUNCH=new Date(2026,9,30);
+// Clock check: if the phone's clock is off, use the website's clock instead (same-origin Date header).
+// Differences under 10 minutes are ignored, midnight still follows the phone's time zone, and offline it's the phone's clock.
+let CLOCK_SKEW=0;
+const now=()=>new Date(Date.now()+CLOCK_SKEW);
+async function checkClock(){
+  if(!/^https?:/.test(location.protocol))return false;
+  try{const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),3000),t0=Date.now();
+    const r=await fetch(location.href.split('#')[0],{method:'HEAD',cache:'no-store',signal:ctl.signal});clearTimeout(tm);
+    const h=r.headers.get('date');if(!h)return false;
+    const skew=Date.parse(h)+(Date.now()-t0)/2-Date.now();
+    if(!isFinite(skew)||Math.abs(skew)<10*60e3)return false;
+    CLOCK_SKEW=skew;return true}catch(e){return false}}
+function dayAt(off){const d=now();d.setDate(d.getDate()-off);d.setHours(0,0,0,0);
+  return{k:d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),n:Math.round((d-LAUNCH)/864e5)+1,d}}
+const today=()=>dayAt(0);
+function rngFrom(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function hash(s){let h=2166136261;for(const c of s)h=Math.imul(h^c.charCodeAt(0),16777619);return h>>>0}
+// Today's 100 letters: drawn from a full bag, refilled as it empties, so the mix always stays fair. A Q always comes with a U soon after.
+function dailyLetters(k){const r=rngFrom(hash(TITLE+k)),out=[];let bag=[];
+  while(out.length<TOTAL){if(!bag.length)bag=BAG.slice();const l=bag.splice(Math.floor(r()*bag.length),1)[0];out.push(l);
+    if(l==='Q'&&out.length<TOTAL)out.push('U')}
+  // One of each vowel today is a ×2 tile (stored lowercase). Same tiles for everyone.
+  for(const v of'AEIOU'){const at=out.map((l,i)=>l===v?i:-1).filter(i=>i>=0);if(at.length)out[at[Math.floor(r()*at.length)]]=v.toLowerCase()}
+  return out}
+
+// ---------- State ----------
+let offered=new Set();const keyOf=w=>w.w+'@'+w.path.join(';');
+let grid,letters,li,cur,score,cleared,timer=null,over=false,replay=false,playDay=null,lit=[],busy=false;
+const cells=[],boardEl=$('board');
+for(let r=0;r<H;r++)for(let c=0;c<W;c++){const e=document.createElement('div');e.className='cell';e.dataset.k=r+','+c;boardEl.appendChild(e);cells.push(e)}
+const cellEl=(r,c)=>cells[r*W+c];
+let slowTest=false;   // Try the ending (testing): falls at the starting speed
+// A letter takes 12 seconds to fall the whole board at the start, easing to 6 seconds by letter 88.
+const speed=()=>(slowTest?12:12-6*Math.min(1,li/88))*1000/H;   // gets a little faster with each letter
+
+// ---------- Words ----------
+// Every word of 3+ letters in a row, column or diagonal. Straight words light yellow, diagonals blue (double points).
+function findWords(){const out=[],dirs=[[0,1,0],[1,0,0],[-1,0,0],[1,1,1],[1,-1,1]]   // across, down, up (letters stacked in the order they fell), 2 diagonals;
+  for(const[dr,dc,dia]of dirs)for(let r=0;r<H;r++)for(let c=0;c<W;c++){
+    if(!grid[r][c])continue;let s='',path=[];
+    for(let y=r,x=c;y>=0&&x>=0&&y<H&&x<W&&grid[y][x];y+=dr,x+=dc){s+=up(grid[y][x]);path.push([y,x]);
+      if(s.length>=3&&DICT.has(s))out.push({w:s,path:path.slice(),dia:!!dia,x2:path.filter(([p,q])=>isX2(grid[p][q])).length,fin:path.some(([p,q])=>isFin(grid[p][q]))})}}
+  // Keep only the longest word in each line, so CATS lights up and CAT inside it doesn't count twice.
+  // A word that reads the same up and down (TOT) only counts once.
+  const seen=new Set();for(let i=out.length-1;i>=0;i--){const k=out[i].path.map(String).sort().join(';')+out[i].dia;if(seen.has(k))out.splice(i,1);else seen.add(k)}
+  return out.filter(a=>!out.some(b=>b!==a&&b.dia===a.dia&&b.w.length>a.w.length&&a.path.every(([y,x])=>b.path.some(([p,q])=>p===y&&q===x))&&sameLine(a,b)))}
+function sameLine(a,b){const d=p=>p.length>1?(p[1][0]-p[0][0])+','+(p[1][1]-p[0][1]):'';return d(a.path)===d(b.path)}
+// A tile is its letter (lowercase = 2× vowel), plus * if it's one of the Final 10.
+const up=l=>l[0].toUpperCase(),isFin=l=>!!l&&l.length>1;
+const isX2=l=>!!l&&l[0]!==l[0].toUpperCase();
+// Points: letter values, +5 for each letter past 4, then ×2 for a diagonal and ×2 for each ×2 vowel (they stack).
+// A chain word (made when letters drop after a clear) also scores ×2.
+let chains=new Set();const isChain=w=>chains.has(keyOf(w));
+const mult=w=>(w.dia?2:1)*2**w.x2*(isChain(w)?2:1)*(w.fin?2:1);
+const wordPts=w=>{let p=[...w.w].reduce((a,l)=>a+PTS[l],0);if(w.w.length>=5)p+=(w.w.length-4)*5;return p*mult(w)};
+const tileHTML=l=>up(l)+'<sub>'+PTS[up(l)]+'</sub>'+(isX2(l)?'<i class="x2">2×</i>':'');
+
+// ---------- Drawing ----------
+function paint(){const L=new Set(),D=new Set();for(const w of lit)for(const[y,x]of w.path)(w.dia?D:L).add(y+','+x);
+  const A=new Set();if(asking[askI])for(const[y,x]of asking[askI].path)A.add(y+','+x);let gh=-1;if(cur){gh=cur.r;while(gh+1<H&&!grid[gh+1][cur.c])gh++}
+  for(let r=0;r<H;r++)for(let c=0;c<W;c++){const e=cellEl(r,c),g=grid[r][c],k=r+','+c,isCur=false,ch=g;
+    e.innerHTML=ch?tileHTML(ch):'';e.className='cell'+(ch&&isX2(ch)?' dbl':'')+(isFin(ch)?' fin':'')+(g?' on':'')+(L.has(k)?' lit':'')+(D.has(k)?' dia':'')+(isCur?' fall':'')+(cur&&c===cur.c&&r===gh&&gh>cur.r?' ghost':'')+(A.has(k)?' ask':'')+(demo&&cur&&r===H-1&&c===demoCol()?' tgt':'')+(r<2&&g?' danger':'')}
+  placeFall();
+  $('score').textContent=score;$('stars').textContent=demo?'–':starsFor(score)||'–';const nx=letters[li],hid=!demo&&nx&&li>=letters.length-MYSTERY;$('nextT').innerHTML=hid?'?':nx?tileHTML(nx):'–';$('nextT').classList.toggle('q',!!hid);$('nextRow').style.visibility=nx||hid||cur?'visible':'hidden';$('nowT').innerHTML=cur?tileHTML(cur.l):'–';$('nowT').classList.toggle('dbl',!!cur&&isX2(cur.l));$('nowT').classList.toggle('fin',!!cur&&isFin(cur.l));$('nextNote').textContent=hid?'Final 10':'';$('nextT').classList.toggle('dbl',!hid&&!!nx&&isX2(nx));
+  $('left').textContent=over?'':demo?'Demo':cur||li<letters.length?(letters.length-li+(cur?1:0))+' letters left':'Last letter';
+  // Speedometer: 1 to 5 bars as the letters speed up (all 5, in red, from letter 88).
+  const lv=1+Math.round(4*Math.min(1,li/88));[...$('gauge').children].slice(1).forEach((b,i)=>b.classList.toggle('on',i<lv));$('gauge').classList.toggle('max',lv===5);$('gauge').hidden=demo||over;
+  $('left').classList.toggle('warn',!demo&&!!letters&&li>letters.length-MYSTERY&&!over);
+  $('goBtn').hidden=!(!cur&&li>=letters.length&&!over&&!demo);['lBtn','dBtn','rBtn'].forEach(b=>$(b).hidden=!$('goBtn').hidden)}
+function msg(t,cls=''){const m=$('msg');m.textContent=t;m.className=cls}
+function tip(){if(demo)return demoTip();if(over)return msg(replay?'Replay over':'Done for today. New letters tomorrow!');
+  if(lit.length)return msg(lit.length===1?lit[0].w+' is lit. Double tap to clear, or press and hold for options':lit.length+' words lit. Double tap one to clear, or press and hold');
+  msg(li<3?'Spell words across, down or diagonally':letters&&li>=letters.length-5?'Last '+(letters.length-li+(cur?1:0))+' letters. Leftovers cost points!':'')}
+
+// ---------- Falling ----------
+function spawn(){if(cur||over)return;if(demo&&li>=letters.length)return demoFinish();if(demo&&li===3){grid[H-1][2]='J';grid[H-1][4]='T'}if(li>=TOTAL){cur=null;return end('All 100 letters played')}   // no cleaning up after the last letter
+  const c=Math.floor(W/2);if(grid[0][c]){cur=null;return end('The letters reached the top')}
+  // 10 letters left: a warning, since the mystery letters start and leftovers will soon cost points.
+  if(!demo&&li===letters.length-MYSTERY){msg('⚠️ Final 10! Mystery letters, double points. Leftovers cost points.','warn');sfx('final')}
+  cur={l:letters[li]+(!demo&&li>=letters.length-MYSTERY?'*':''),r:0,c};li++;paint();tick();if(demo)demoTip()}
+function tick(){clearTimeout(timer);if(!cur||over||paused()||demo)return;   // in the demo the letter waits for you
+  timer=setTimeout(()=>{fall();tick()},speed())}
+// The falling tile is drawn on top of its square. It moves square to square, like Straight Down (no sliding, which looked jittery).
+const fallEl=document.createElement('div');fallEl.className='cell on fall';fallEl.id='fallT';boardEl.appendChild(fallEl);
+let fallKey='';
+function placeFall(){if(!cur){fallEl.hidden=true;fallKey='';return}const t=cellEl(cur.r,cur.c);
+  const k=cur.l+li;if(k!==fallKey){fallKey=k;fallEl.style.transition='none';fallEl.innerHTML=tileHTML(cur.l);fallEl.classList.toggle('dbl',isX2(cur.l));fallEl.classList.toggle('fin',isFin(cur.l))}
+  fallEl.hidden=false;fallEl.style.left=t.offsetLeft+'px';fallEl.style.top=t.offsetTop+'px'}
+function paused(){return !$('ask').hidden||!$('stats').hidden||!$('past').hidden||!$('quick').hidden||!$('demoDone').hidden||!$('menu').hidden||!$('help').hidden||!$('cover').hidden||!$('done').hidden}
+function fall(){if(!cur)return;if(cur.r+1<H&&!grid[cur.r+1][cur.c]){cur.r++;paint()}else land()}
+function land(){grid[cur.r][cur.c]=cur.l;const e=cellEl(cur.r,cur.c);cur=null;sfx('drop');
+  lit=findWords();paint();e.classList.add('pick');tip();save();
+  if(!offerNew())setTimeout(spawn,120)}
+// A new word pauses the game and asks: clear it now, or hold it and keep building.
+let asking=[];
+function offerNew(){const nw=lit.filter(w=>!offered.has(keyOf(w)));nw.forEach(w=>offered.add(keyOf(w)));if(!nw.length||over)return false;
+  showAsk(nw,nw.some(isChain)?'⛓ Chain! Double points':'Word made · paused');msg('Clear it now, or hold it and build a longer word');if(demo)demoAsk();return true}
+// Press and hold a lit word to bring the choice back up for a word you held earlier.
+// With the pop-up open, a line strikes through one word's tiles at a time (that word floats up, and its row in the list
+// is marked), taking turns every 1.4s when there are several words. Tap a word in the list to jump to it.
+let askI=0,askT=null;
+const strike=document.createElementNS('http://www.w3.org/2000/svg','svg');strike.id='strike';boardEl.appendChild(strike);
+function showStrike(){const w=asking[askI];strike.innerHTML='';[...$('askList').children].forEach((d,i)=>d.classList.toggle('cur',i===askI));
+  paint();if(!w)return;const ctr=([y,x])=>{const e=cellEl(y,x);return[e.offsetLeft+e.offsetWidth/2,e.offsetTop+e.offsetHeight/2-5]};
+  const[a,b]=[ctr(w.path[0]),ctr(w.path[w.path.length-1])],l=document.createElementNS('http://www.w3.org/2000/svg','line');
+  l.setAttribute('x1',a[0]);l.setAttribute('y1',a[1]);l.setAttribute('x2',b[0]);l.setAttribute('y2',b[1]);
+  const len=Math.hypot(b[0]-a[0],b[1]-a[1])||1;l.style.strokeDasharray=len;l.style.strokeDashoffset=len;strike.appendChild(l);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{l.style.strokeDashoffset=0}))}
+function cycleAsk(){clearInterval(askT);askT=null;if(asking.length>1)askT=setInterval(()=>{askI=(askI+1)%asking.length;showStrike()},1400)}
+function showAsk(nw,head){clearTimeout(timer);askI=0;$('askHead').textContent=head;asking=nw.slice().sort((a,b)=>wordPts(b)-wordPts(a));const L=$('askList');L.innerHTML='';
+  asking.forEach((w,i)=>{const d=document.createElement('div');d.className='aw';d.onclick=e=>{if(e.target.tagName==='BUTTON')return;askI=i;showStrike();cycleAsk()};
+    d.innerHTML=`<div class="w"></div><div class="p">+${wordPts(w)}</div><button>Clear</button>`;d.firstChild.textContent=w.w;
+    const why=[];if(w.fin)why.push('final 10 ×2');if(isChain(w))why.push('chain ×2');if(w.dia)why.push('diagonal ×2');if(w.x2)why.push(w.x2+' vowel'+(w.x2>1?'s':'')+' ×'+2**w.x2);
+    if(why.length){const sm=document.createElement('small');sm.textContent=why.join(' · ')+(why.length>1?' = ×'+mult(w):'');d.firstChild.appendChild(sm)}
+    d.querySelector('button').onclick=()=>{closeAsk(true);clearWord(w)};L.appendChild(d)});
+  // Words that share a letter: clearing one would break the others, so offer to clear them all together.
+  const share=(a,b)=>a.path.some(([y,x])=>b.path.some(([p,q])=>p===y&&q===x)),jn=asking.slice();
+  for(let i=0;i<jn.length;i++)for(const v of lit)if(!jn.some(u=>keyOf(u)===keyOf(v))&&share(jn[i],v))jn.push(v);
+  const joined=jn.filter(a=>jn.some(b=>b!==a&&share(a,b)));
+  if(!demo&&joined.length>1){const d=document.createElement('div');d.className='aw both';
+    d.innerHTML=`<div class="w"><small>Joined words, ${joined.length===2?'both':'all '+joined.length} score</small></div><div class="p">+${joined.reduce((a,v)=>a+wordPts(v),0)}</div><button>Clear ${joined.length===2?'both':'all'}</button>`;
+    d.firstChild.prepend(joined.map(v=>v.w).join(' + '));d.querySelector('button').onclick=()=>{closeAsk(true);clearWords(joined)};L.appendChild(d)}
+  $('askHold').textContent=!demo&&!cur&&li>=letters.length?"Don't clear (game ends)":asking.length>1?'Hold all (keep building)':'Hold (keep building)';
+  // The pop-up can cover the Now and Next tiles, so it shows the next letter too (? for the Final 10).
+  const up2=(cur?[cur.l]:[]).concat(letters.slice(li,li+1)).slice(0,1).map((l,i)=>{const at=li+i-(cur?1:0),q=!demo&&at>=letters.length-MYSTERY&&!(i===0&&cur);
+    return `<span class="t${q?' q':isX2(l)?' dbl':''}${i?' n2':''}">${q?'?':up(l)+'<sub>'+PTS[up(l)]+'</sub>'}</span>`});
+  $('askNext').innerHTML=up2.length?'Coming up '+up2.join(''):'Last letter played';
+  // Keep the board visible: the panel goes under the board if it fits there (it only covers the arrows, which do nothing
+  // while paused). If not, it sits over whichever half of the board has fewer tiles (usually the empty top).
+  $('ask').classList.remove('top');$('ask').hidden=false;
+  const room=innerHeight-boardEl.getBoundingClientRect().bottom,need=$('ask').querySelector('.in').offsetHeight+18;
+  const cnt=(a,b)=>grid.slice(a,b).flat().filter(Boolean).length;if(room<need)$('ask').classList.toggle('top',cnt(0,Math.ceil(H/2))<=cnt(Math.floor(H/2),H));
+  showStrike();cycleAsk();sfx('word')}
+function closeAsk(clearing){clearInterval(askT);askT=null;strike.innerHTML='';$('ask').hidden=true;asking=[];askI=0;paint();if(clearing||over)return;afterAsk()}
+function afterAsk(){if(over||paused())return;if(cur)tick();else spawn()}
+$('askHold').onclick=()=>{closeAsk(false);tip()};
+// Peek: while you hold this button the panel goes see-through, so you can check the whole board before deciding.
+{const pk=$('peek'),off=()=>$('ask').classList.remove('peek');pk.addEventListener('pointerdown',e=>{e.preventDefault();$('ask').classList.add('peek')});
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>pk.addEventListener(ev,off));pk.addEventListener('contextmenu',e=>e.preventDefault())}
+// Put the letter in column n at its current height (it can jump over taller stacks, like Straight Down).
+function place(n){if(!cur||over||paused()||n<0||n>=W||grid[cur.r][n])return false;if(n!==cur.c)sfx('move');cur.c=n;paint();return true}
+function move(dc){if(!cur)return false;for(let n=cur.c+dc;n>=0&&n<W;n+=dc)if(place(n))return true;return false}
+// Aim at a column; if it's blocked at this height, get as close as possible.
+function moveTo(c){if(!cur||c===cur.c)return;if(!place(c)){const d=c>cur.c?1:-1;for(let n=c-d;n!==cur.c;n-=d)if(place(n))return}}
+function drop(){if(!cur||over)return;if(demo&&cur.c!==demoCol())return demoTip(true);while(cur.r+1<H&&!grid[cur.r+1][cur.c])cur.r++;clearTimeout(timer);land()}
+// Arrow buttons: tap to move one square, hold to keep moving.
+for(const[id,dc]of[['lBtn',-1],['rBtn',1]]){const b=$(id);let rep=null;const stop=()=>{clearTimeout(rep);clearInterval(rep);rep=null};
+  b.addEventListener('pointerdown',e=>{e.preventDefault();move(dc);stop();rep=setTimeout(()=>{rep=setInterval(()=>move(dc),90)},260)});
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,stop))}
+$('dBtn').addEventListener('pointerdown',e=>{e.preventDefault();drop()});
+addEventListener('keydown',e=>{if(e.key==='ArrowLeft')move(-1);else if(e.key==='ArrowRight')move(1);else if(e.key==='ArrowDown'||e.key===' '){e.preventDefault();drop()}});
+// On the board, like Straight Down: tap a column to move the letter there, tap that same column again to drop it.
+// Sliding your finger aims too; letting go only drops if you end on the column the letter was already in.
+// Touching a lit word is for double tap to clear, so it doesn't aim or drop.
+let sw=null;
+const colAt=x=>{const b=boardEl.getBoundingClientRect();return Math.max(0,Math.min(W-1,Math.floor((x-b.left-3)/((b.width-6)/W))))};
+let pressT=null;const unpress=()=>{clearTimeout(pressT);pressT=null};
+boardEl.addEventListener('pointerdown',e=>{const onLit=tapCell(e);sw={lit:onLit,l:cur&&cur.l+li,c0:cur&&cur.c};unpress();
+  if(onLit){const el=e.target.closest('.cell'),k=el&&el.dataset.k;pressT=setTimeout(()=>{pressT=null;if(over||paused())return;
+    const hits=lit.filter(w=>w.path.some(([y,x])=>y+','+x===k));if(!hits.length)return;lastTap={k:'',t:0};
+    showAsk(hits,'Held word · paused');msg('Clear it now, or keep holding it')},450)}try{boardEl.setPointerCapture(e.pointerId)}catch(_){}if(!onLit)moveTo(colAt(e.clientX))});
+boardEl.addEventListener('pointermove',e=>{if(!sw||sw.lit||!cur||sw.l!==cur.l+li)return;moveTo(colAt(e.clientX))});
+boardEl.addEventListener('pointerup',e=>{unpress();if(!sw)return;const s0=sw;sw=null;if(s0.lit||!cur||s0.l!==cur.l+li)return;
+  const c=colAt(e.clientX);if(c!==s0.c0){if(c!==cur.c)msg('That column is full');else msg('Tap again to drop it');if(demo)demoTip();return}drop()});
+boardEl.addEventListener('pointercancel',()=>{unpress();sw=null});
+
+// ---------- Double tap to clear ----------
+let lastTap={k:'',t:0};
+function tapCell(e){const el=e.target.closest('.cell');if(!el||over)return;const k=el.dataset.k,now=Date.now();
+  const hits=lit.filter(w=>w.path.some(([y,x])=>y+','+x===k));
+  if(!hits.length){lastTap={k:'',t:0};return false}
+  if(lastTap.k===k&&now-lastTap.t<400){lastTap={k:'',t:0};clearWord(hits.sort((a,b)=>wordPts(b)-wordPts(a))[0]);return true}
+  lastTap={k,t:now};el.classList.remove('pick');void el.offsetWidth;el.classList.add('pick');return true}
+// Each cleared word is saved as text, e.g. "⛓CARDS↘ ×4 +52": chain mark, word, ↘ for diagonal, multiplier, points.
+const clearLabel=w=>(isChain(w)?'⛓':'')+w.w+(w.dia?'↘':'')+(mult(w)>1&&!(w.dia&&mult(w)===2)?' ×'+mult(w):'')+' +'+wordPts(w);
+function clearWord(w){clearWords([w])}
+// Clear several words at once (Clear both): each scores in full, shared letters count in every word they're in.
+function clearWords(ws){const w=ws[0],p=ws.reduce((a,v)=>a+wordPts(v),0);score+=p;ws.forEach(v=>cleared.push(clearLabel(v)));
+  for(const v of ws)for(const[y,x]of v.path)cellEl(y,x).classList.add('boom');
+  const[y0,x0]=w.path[0],pop=document.createElement('div');pop.className='pop'+(w.dia?' d':'');pop.textContent=ws.map(v=>v.w).join(' + ')+' +'+p;
+  pop.style.left=Math.min(cellEl(y0,x0).offsetLeft,boardEl.clientWidth-90)+'px';pop.style.top=cellEl(y0,x0).offsetTop+'px';boardEl.appendChild(pop);setTimeout(()=>pop.remove(),1000);
+  sfx('clear');if(w.dia||ws.length>1||mult(w)>1)setTimeout(()=>sfx('big'),160);if(!demo&&starCount(score)>starCount(score-p))setTimeout(()=>sfx('star'),420);
+  msg((ws.length>1?ws.map(v=>v.w).join(' + '):w.w+(mult(w)>1?' (×'+mult(w)+')':''))+' +'+p+(!demo&&starCount(score)>starCount(score-p)?'  ·  '+'⭐'.repeat(starCount(score))+' earned!':''),'good');
+  setTimeout(()=>{const sig=v=>v.w+'|'+(v.path.length>1?(v.path[1][0]-v.path[0][0])+','+(v.path[1][1]-v.path[0][1]):''),
+      gone=new Set(ws.map(keyOf)),before=new Set(lit.filter(v=>!ws.includes(v)&&!gone.has(keyOf(v))).map(sig)),was=grid.map(r=>r.slice());
+    for(const v of ws)for(const[y,x]of v.path)grid[y][x]=null;
+    // Letters above a cleared square drop down.
+    for(let c=0;c<W;c++){const col=[];for(let r=H-1;r>=0;r--)if(grid[r][c])col.push(grid[r][c]);for(let r=H-1,i=0;r>=0;r--,i++)grid[r][c]=col[i]||null}
+    if(cur&&grid[cur.r][cur.c])cur.r=Math.max(0,cur.r-1);
+    // A held word that just slid down is still the same word (no new pop-up). A new word that uses a letter that dropped is a chain.
+    lit=findWords();for(const n of lit){if(offered.has(keyOf(n)))continue;
+      if(before.has(sig(n))){offered.add(keyOf(n));continue}
+      if(n.path.some(([y,x])=>was[y][x]!==grid[y][x]))chains.add(keyOf(n))}paint();save();if(!offerNew()){afterAsk();setTimeout(()=>{if(!lit.length)tip()},900)}},330)}
+
+// ---------- Stars ----------
+// Points for each star (after leftover letters come off). A good player who clears every word right away
+// lands around 180 on the 7x8 board (2 stars); 3 stars takes holding words for longer ones and finishing with a clean board.
+const STARS=[90,180,300];
+const starCount=s=>STARS.filter(t=>s>=t).length;
+const starsFor=s=>'⭐'.repeat(starCount(s));
+const nextStar=s=>STARS.find(t=>s<t);
+
+// ---------- End ----------
+$('goBtn').onclick=()=>end('All 100 letters played');
+let late=false;
+// Like Scrabble: when the game ends, every letter still on the board takes its points off your score.
+// Words you were still holding don't score either, so holding near the end is a real gamble. The result card lists both.
+function end(why){const lost=findWords().map(w=>w.w+' ('+wordPts(w)+')');let left=0,nl=0;
+  for(const row of grid)for(const l of row)if(l){left+=PTS[up(l)];nl++}
+  const words=score;score=Math.max(0,score-left);over=true;cur=null;clearTimeout(timer);paint();tip();
+  const best=cleared.reduce((a,w)=>{const x=w.replace('⛓','').split(/[ ↘]/)[0];return x.length>a.length?x:a},'');
+  const top=topWord(cleared);
+  const r={s:score,w:cleared.length,best,why,list:cleared.slice(0,40)};if(top)r.top=top;if(late)r.late=1;if(lost.length)r.lost=lost;if(left)Object.assign(r,{words,left,nl});
+  if(!replay){store.set('day_'+playDay.k,JSON.stringify(r));store.set('ndone',+store.get('ndone',0)+1);
+    store.set('best',Math.max(score,+store.get('best',0)));if(!late)checkIn(score)}
+  sfx('end');if(starCount(score))setTimeout(()=>sfx('win'),300);
+  setTimeout(()=>showDone(r),500)}
+// The word that scored the most points, from the saved labels ("CARDS ×2 +26").
+const ptsOf=l=>+((l.match(/\+(\d+)$/)||[])[1]||0),wordOf=l=>(l.match(/[A-Z]+/)||[''])[0];
+function topWord(list){let b=null;for(const l of list){const p=ptsOf(l);if(p&&(!b||p>b.p))b={w:wordOf(l),p}}return b}
+function result(k){try{return JSON.parse(store.get('day_'+k,''))}catch(e){return null}}
+// The result card, like The Daily 15: stars, points, why it ended, streak, Share.
+function showDone(r){const n=starCount(r.s),st=starsFor(r.s);
+  $('dTitle').textContent=(replay?'Replay: ':'')+(n===3?'Brilliant!':n===2?'Well played!':n?'Nice game!':'Game over');
+  $('dStars').textContent=st||'☆';$('dScore').textContent=r.s;
+  $('dRes').textContent=[r.w+' word'+(r.w===1?'':'s'),r.top?'best '+r.top.w+' +'+r.top.p:'',r.late?'played late':''].filter(Boolean).join(' · ');
+  const nx=nextStar(r.s);$('dWhy').textContent=(r.why?r.why+'. ':'')+(nx?(nx-r.s)+' more points for '+'⭐'.repeat(n+1)+'.':'All 3 stars!');
+  // Each word is tappable for its meaning.
+  const WL=$('dWords');WL.innerHTML='';(r.list||cleared).forEach((l,i)=>{if(i)WL.append(' · ');const b=document.createElement('span');b.className='dw';b.textContent=l.replace(/ \+\d+$/,'');b.onclick=()=>showDef(wordOf(l));WL.appendChild(b)});
+  const nw=(r.list||cleared).length;$('dTap').hidden=!nw;$('dMore').open=false;
+  $('dMore').hidden=!nw&&!r.lost&&!r.left;$('dMoreT').textContent=nw?'Your '+nw+' word'+(nw>1?'s':''):'Letters lost';
+  $('dLost').hidden=!r.lost&&!r.left;$('dLost').className='lost';
+  $('dLost').innerHTML=(r.left?'Words '+r.words+' − '+r.nl+' letter'+(r.nl>1?'s':'')+' left on the board '+r.left+' = <b>'+r.s+'</b>':'')+(r.lost?'<br><b>Held and lost:</b> '+r.lost.join(', '):'');
+  const sk=streak(),real=!replay&&!r.late;$('dStreak').hidden=!real||!sk.n;$('dStreak').textContent='🔥 Streak: '+sk.n+' day'+(sk.n>1?'s':'')+' · Best: '+sk.best;
+  // Share always uses the first, saved result for that day.
+  const first=result(playDay.k)||r,top='🔤 Straight Down Spell · No. '+playDay.n+(first.late?' (played late)':'')+'\n',streakL=!first.late&&sk.n>=2?' · 🔥 '+sk.n+'-day streak':'';
+  $('done').dataset.share=top+(starsFor(first.s)||'☆')+' '+first.s+' points · '+first.w+' words'+streakL+'\n'+shareGrid(first)+SITE;
+  $('dAgain').hidden=replay&&false;$('done').hidden=false}
+// Share grid: one square per word cleared, in order, 8 to a row. 🟨 straight, 🟦 diagonal, 🟩 chain, 🟪 ×4 or more.
+// Then the best word, and a line for letters left on the board.
+function shareGrid(r){const sq=(r.list||[]).map(l=>{const m=+((l.match(/×(\d+)/)||[])[1]||1);return m>=4?'🟪':l.includes('⛓')?'🟩':l.includes('↘')?'🟦':'🟨'});
+  let g='';for(let i=0;i<sq.length;i+=8)g+=sq.slice(i,i+8).join('')+'\n';
+  if(r.top)g+='Best word: '+r.top.w+' +'+r.top.p+'\n';if(r.nl)g+='⬜ '+r.nl+' letter'+(r.nl>1?'s':'')+' left on the board\n';return g}
+// Streak: days in a row finished on the day they came out (late plays don't count). Today still open doesn't break it.
+function streak(){const on=d=>{const r=result(d.k);return !!r&&!r.late};let n=0;
+  for(let i=on(today())?0:1;i<400;i++){const d=dayAt(i);if(d.n<1||!on(d))break;n++}
+  const best=Math.max(n,+store.get('streakBest',0));store.set('streakBest',String(best));return{n,best,today:on(today())}}
+$('dShare').onclick=async()=>{const t=$('done').dataset.share;try{if(navigator.share){await navigator.share({text:t});return}}catch(e){return}
+  try{await navigator.clipboard.writeText(t);$('dShare').textContent='Copied!'}catch(e){$('dShare').textContent='Could not copy'}setTimeout(()=>$('dShare').textContent='Share result',1500)};
+// Meanings come from the free dictionary at dictionaryapi.dev (only the word is sent). If it can't be reached
+// or doesn't know the word, there's a link to look it up instead.
+const defCache={};
+async function showDef(w){if(!w)return;$('defW').textContent=w;const T=$('defT');T.textContent='Looking it up…';$('def').hidden=false;
+  const look=()=>{T.innerHTML+='<p class="dsm"><a target="_blank" rel="noopener">Look up '+w+' online</a></p>';T.querySelector('a').href='https://www.google.com/search?q=define+'+encodeURIComponent(w.toLowerCase())};
+  try{const d=defCache[w]||(defCache[w]=await fetch('https://api.dictionaryapi.dev/api/v2/entries/en/'+encodeURIComponent(w.toLowerCase())).then(r=>r.ok?r.json():null));
+    if($('defW').textContent!==w)return;const ms=d&&d[0]&&d[0].meanings||[];T.innerHTML='';
+    ms.slice(0,3).forEach(m=>{const p=document.createElement('p');p.innerHTML='<i></i> ';p.firstChild.textContent=m.partOfSpeech;p.append(m.definitions[0].definition);T.appendChild(p)});
+    if(!ms.length){T.textContent="It's in the game's word list, but the dictionary doesn't have a meaning for it.";look()}}
+  catch(e){if($('defW').textContent!==w)return;T.textContent="Couldn't reach the dictionary.";look()}}
+$('defOk').onclick=()=>{$('def').hidden=true};$('def').onclick=e=>{if(e.target.id==='def')$('def').hidden=true};
+$('dAgain').onclick=()=>{$('done').hidden=true;start(true,playDay)};
+$('dClose').onclick=()=>$('done').hidden=true;
+$('dPast').onclick=()=>{backTo='done';showPast()};
+$('dStats').onclick=()=>{backTo='done';showStats()};
+
+// ---------- Stats ----------
+// From the saved daily results. Replays and the demo never save one.
+function stats(){const days=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(!/^gr_day_\d{4}-\d\d-\d\d$/.test(k))continue;try{const r=JSON.parse(localStorage.getItem(k));if(r)days.push(r)}catch(e){}}
+  let stars=0,three=0,pts=0,words=0,best=0;for(const r of days){const n=starCount(r.s);stars+=n;if(n>=3)three++;pts+=r.s;words+=r.w||0;best=Math.max(best,r.s)}
+  const sk=streak();return{played:days.length,stars,three,avg:days.length?Math.round(pts/days.length):'–',best,words,cur:sk.n,bestStreak:sk.best}}
+function showStats(){$('done').hidden=true;$('menu').hidden=true;$('cover').hidden=true;const s=stats(),dd=n=>n+' day'+(n===1?'':'s');
+  $('statStreak').innerHTML='<div><em>🔥</em>Current streak:<b>'+dd(s.cur)+'</b></div><div><em></em>Best streak:<b>'+dd(s.bestStreak)+'</b></div>';
+  // This week: the last 7 days, oldest first. Only on-the-day plays count; today still open shows a dash.
+  let wp=0,ws=0,W='';for(let i=6;i>=0;i--){const d=dayAt(i),r=result(d.k),wd=d.d.toLocaleDateString('en-US',{weekday:'short'}).toUpperCase();
+    if(r&&!r.late){const n=starCount(r.s);wp++;ws+=n;W+='<div><span>'+wd+'</span>'+(n===3?'⭐<br>⭐⭐':n?'⭐'.repeat(n):'<span class="x">✓</span>')+'</div>'}
+    else W+='<div'+(i?' class="off"':'')+'><span>'+wd+'</span><span class="x">'+(i?'✕':'–')+'</span></div>'}
+  $('statWeek').innerHTML=W;$('statWeekSum').textContent=wp+' of 7 played · '+ws+' ⭐';
+  const T=[[s.stars,'⭐ Stars'],[s.played,'Played'],[s.three,'⭐⭐⭐'],[s.avg,'Avg points'],[s.best,'Best score'],[s.words,'Words cleared']];
+  $('statGrid').innerHTML=T.map(([v,l])=>'<div><b>'+v+'</b><span>'+l+'</span></div>').join('');$('stats').hidden=false}
+// Back returns to wherever a screen was opened from: the cover, the menu or the result card.
+let backTo=null;
+function goBack(){const b=backTo;backTo=null;if(b==='cover')cover();else if(b==='menu')$('menu').hidden=false;else if(b==='done')$('done').hidden=false;else resume()}
+$('statsBack').onclick=()=>{$('stats').hidden=true;goBack()};
+
+// ---------- Archive ----------
+// The last 7 days (back to No. 1). They count for stars but are marked late and don't add to the streak.
+function showPast(){['menu','done','cover'].forEach(id=>$(id).hidden=true);const L=$('pastList');L.innerHTML='';
+  for(let i=1;i<=7;i++){const d=dayAt(i);if(d.n<1)break;const r=result(d.k),pg=store.get('prog_'+d.k,'');
+    const b=document.createElement('button');b.className='go alt';b.style.cssText='display:flex;justify-content:space-between;text-transform:none;letter-spacing:0';
+    b.innerHTML='<span>No. '+d.n+' · '+d.d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})+'</span><span>'+(r?(starsFor(r.s)||'')+' '+r.s+(r.late?' late':''):pg?'In progress':'Play')+'</span>';
+    b.onclick=()=>{$('past').hidden=true;backTo=null;start(false,d);if(result(d.k)){over=true;showDone(result(d.k))}};L.appendChild(b)}
+  if(!L.children.length)L.innerHTML='<p style="margin:0;text-align:center;font-style:italic">Nothing in the archive yet. Straight Down Spell No. 1 is today\'s game.</p>';
+  $('past').hidden=false}
+$('pastBack').onclick=()=>{$('past').hidden=true;goBack()};
+
+// ---------- Save and start ----------
+function save(){if(replay||over||!playDay)return;store.set('prog_'+playDay.k,JSON.stringify({grid,li:li-(cur?1:0),score,cleared}))}
+// day: a past day from Archive (played late); otherwise today.
+function start(again,day){demoOff();slowTest=false;playDay=day||today();late=playDay.k!==today().k;replay=!!again;letters=dailyLetters(playDay.k);
+  grid=Array.from({length:H},()=>Array(W).fill(null));li=0;score=0;cleared=[];over=false;cur=null;lit=[];chains=new Set();
+  let prog=null;try{prog=JSON.parse(store.get('prog_'+playDay.k,''))}catch(e){}
+  const done=result(playDay.k);
+  if(!again&&prog&&!done&&prog.grid&&prog.grid.length===H&&prog.grid[0].length===W)({grid,li,score,cleared}=prog);   // skip saves from the old 9x9 or 7x7 board
+  $('pno').textContent=(replay?'Replay · ':late?'Late · ':'')+'No. '+playDay.n;$('cover').hidden=true;layout();lit=findWords();offered=new Set(lit.map(keyOf));asking=[];$('ask').hidden=true;
+  if(!again&&done){over=true;score=done.s;if(done.grid&&done.grid.length===H)grid=done.grid;paint();tip();return}
+  paint();tip();if(!paused())spawn();else waitStart=true}
+let waitStart=false;
+function resume(){if(over)return;waitStart=false;afterAsk()}
+function cover(){clearTimeout(timer);if(demo){demoOff();grid=null;letters=null;cur=null}const t=today(),r=result(t.k),p=store.get('prog_'+t.k,'');
+  $('cvDate').textContent=t.d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric',year:'numeric'});$('cvNo').textContent='Game No. '+t.n;
+  $('coverGo').textContent=r?"See today's result":p?'Keep playing':"Play today's game";
+  const sk=streak();$('cvStreak').hidden=!sk.n;$('cvStreak').textContent='🔥 '+sk.n+'-day streak'+(sk.today?'':' · play today to keep it');
+  // Stats row: a few headline figures (tap for the full card). Hidden until the first finished game.
+  const s=stats();$('cvStats').hidden=!s.played;if(s.played)$('cvStats').innerHTML=[[s.stars,'⭐ Stars'],[s.played,'Played'],[s.best,'Best score'],[s.bestStreak,'Best streak']].map(([v,l])=>'<div><b>'+v+'</b><span>'+l+'</span></div>').join('');
+  $('cover').hidden=false}
+$('coverGo').onclick=()=>{if(!store.get('seenHelp','')){store.set('seenHelp','1');return qOpen(false)}start();const r=result(today().k);if(r)showDone(r)};
+$('cvStats').onclick=$('coverStats').onclick=()=>{backTo='cover';showStats()};
+$('coverPast').onclick=()=>{backTo='cover';showPast()};
+$('coverHow').onclick=()=>qOpen(true);
+// One way back to the smAisle Daily home, from the cover and the menu. On the website it opens in place; in the Claude copy, in a new tab.
+const toDaily=()=>{const u='https://smaisle.app/daily/';if(/github\.io$|smaisle\.app$/.test(location.hostname))location.href=u;else window.open(u,'_blank','noopener')};
+$('coverSm').onclick=toDaily;$('mDaily').onclick=toDaily;$('dDaily').onclick=toDaily;
+// Shared results always link to the game's own page on smaisle.app (right from Claude and app copies too).
+const SITE='https://smaisle.app/sdspell/';
+// "More smAisle games" on the result card: the list from smAisle Daily's games.js when it loads,
+// otherwise the copy built in (same games, small icons inside).
+const GAMES_FALLBACK=__GAMES__;
+function moreGames(){const live=window.SMAISLE&&SMAISLE.games,mine={};GAMES_FALLBACK.forEach(g=>mine[g.id]=g);
+  const list=(live||GAMES_FALLBACK).filter(g=>g.id!=='daily'&&g.id!=='ss');const box=$('dGames');box.innerHTML='';
+  list.forEach(g=>{const a=document.createElement('a');a.href=g.url;a.title=g.name;a.setAttribute('aria-label',g.name);
+    if(!/github\.io$|smaisle\.app$/.test(location.hostname)){a.target='_blank';a.rel='noopener'}
+    const im=document.createElement('img');im.alt=g.name;im.src=(mine[g.id]&&mine[g.id].icon)||g.icon;a.appendChild(im);box.appendChild(a)})}
+moreGames();
+$('helpGo').onclick=()=>{$('help').hidden=true;resume()};
+const sndLabel=()=>{const on=store.get('sound','on')==='on';$('mSound').innerHTML='<span>'+(on?'🔊':'🔇')+'</span>Sound: <b>'+(on?'On':'Off')+'</b>';$('mSound').classList.toggle('on',on)};
+$('menuBtn').onclick=()=>{clearTimeout(timer);showLeft();sndLabel();$('menu').hidden=false};
+// Letters still to come today, A to Z (including the one falling now). ×2 vowels still to come are listed too.
+// The last 10 letters are a mystery: the counts never include them (so pausing late tells you nothing), and Next shows ? for them.
+const MYSTERY=10;
+function showLeft(){const cut=letters?Math.max(li,letters.length-(demo?0:MYSTERY)):0,myst=letters?letters.length-cut:0;
+  const rest=letters?(cur?[cur.l]:[]).concat(letters.slice(li,cut)):[],n={};for(const l of rest){const u=up(l);n[u]=(n[u]||0)+1}
+  const x2=rest.filter(isX2).map(up);
+  $('lTot').textContent='Paused · '+(rest.length+myst)+' letters left';
+  $('lX2').textContent=[x2.length?'2× still to come: '+x2.join(' '):'',myst?'❓ last '+myst+' are a mystery':''].filter(Boolean).join(' · ');$('lX2').hidden=!$('lX2').textContent;
+  $('lefts').innerHTML=Object.keys(PTS).map(l=>`<div class="${n[l]?'':'zero'} ${'AEIOU'.includes(l)?'v':''}">${l}<small>${n[l]||0}</small></div>`).join('')}
+$('mClose').onclick=()=>{$('menu').hidden=true;resume()};
+$('mPast').onclick=()=>{backTo='menu';showPast()};
+$('mStats').onclick=()=>{backTo='menu';showStats()};
+// Testing only: wipe today's saved game and result, then start over from letter 1.
+$('mRestart').onclick=()=>{if($('mRestart').dataset.sure!=='1'){$('mRestart').dataset.sure='1';$('mRestart').textContent='Tap again to restart';return}
+  $('mRestart').dataset.sure='';$('mRestart').textContent="Restart today's game";const k=today().k;try{localStorage.removeItem(CODE+'_day_'+k);localStorage.removeItem(CODE+'_prog_'+k)}catch(e){}
+  clearTimeout(timer);$('menu').hidden=true;$('done').hidden=true;start()};
+// The full rules come in 3 short pages (Next / Back), so nothing scrolls on a small phone.
+let hp=0;const hPage=n=>{const ps=[...document.querySelectorAll('#help .hp')];hp=Math.max(0,Math.min(ps.length-1,n));ps.forEach((u,k)=>u.hidden=k!==hp);
+  $('hDots').innerHTML=ps.map((_,k)=>'<i class="'+(k===hp?'on':'')+'"></i>').join('');$('hPrev').disabled=!hp;$('hNext').disabled=hp===ps.length-1};
+$('hPrev').onclick=()=>hPage(hp-1);$('hNext').onclick=()=>hPage(hp+1);
+new MutationObserver(()=>{if(!$('help').hidden)hPage(0)}).observe($('help'),{attributes:true,attributeFilter:['hidden']});hPage(0);
+$('mHow').onclick=()=>{$('menu').hidden=true;$('help').hidden=false};
+$('mDemo').onclick=startDemo;$('helpDemo').onclick=startDemo;
+// Testing only: today's letters with 15 left. A robot plays the first 85 (clearing words, then holding a couple near the end),
+// and you take it from there. It's a replay, so nothing is saved.
+$('mEnd').onclick=()=>{$('menu').hidden=true;$('done').hidden=true;clearTimeout(timer);start(true);clearTimeout(timer);cur=null;
+  const landRow=c=>{let r=-1;while(r+1<H&&!grid[r+1][c])r++;return r};
+  for(li=0;li<TOTAL-15;li++){const l=letters[li];let best=null;
+    for(let c=0;c<W;c++){const r=landRow(c);if(r<2)continue;grid[r][c]=l;const v=findWords().reduce((a,w)=>a+wordPts(w),0)*10+r;grid[r][c]=null;if(!best||v>best.v)best={c,r,v}}
+    if(!best)break;grid[best.r][best.c]=l;
+    if(li<TOTAL-22)for(let g=0;g<20;g++){const ws=findWords();if(!ws.length)break;const w=ws.sort((a,b)=>wordPts(b)-wordPts(a))[0];score+=wordPts(w);cleared.push(clearLabel(w));
+      for(const[y,x]of w.path)grid[y][x]=null;for(let c=0;c<W;c++){const col=[];for(let r=H-1;r>=0;r--)if(grid[r][c])col.push(grid[r][c]);for(let r=H-1,i=0;r>=0;r--,i++)grid[r][c]=col[i]||null}}}
+  lit=findWords();offered=new Set(lit.map(keyOf));slowTest=true;$('pno').textContent='Ending test';paint();tip();spawn()};
+// Dark mode row: saved in the shared smAisle setting, so it carries to every smAisle game.
+const darkSel=()=>{const m=applyMode();document.querySelectorAll('#segDark button').forEach(b=>b.classList.toggle('sel',b.dataset.v===m))};
+document.querySelectorAll('#segDark button').forEach(b=>b.onclick=()=>{try{localStorage.setItem('smaisle-dark',b.dataset.v)}catch(e){}applyMode(b.dataset.v);darkSel()});darkSel();
+$('mCover').onclick=()=>{$('menu').hidden=true;cover()};
+$('mSet').onclick=()=>{$('menu').hidden=true;$('settings').hidden=false};$('setBack').onclick=()=>{$('settings').hidden=true;$('menu').hidden=false};
+$('mSound').onclick=()=>{store.set('sound',store.get('sound','on')==='on'?'off':'on');sndLabel();tone(660,.08)};
+document.addEventListener('visibilitychange',()=>{if(document.hidden)clearTimeout(timer);else{checkIn(null);if(!paused())resume()}});
+
+// ---------- First-time intro ----------
+// 4 short screens, then the guided demo. From How to play on the cover, the same screens without the demo.
+const qt=(w,cls)=>[...w].map((l,i)=>{const c=typeof cls==='function'?cls(l,i):cls||'';if(l==='.')return'<span class="qt e"></span>';
+  const u=l.toUpperCase();return'<span class="qt '+c+'">'+u+'<sub>'+PTS[u]+'</sub>'+(c.includes('x')?'<i>2×</i>':'')+'</span>'}).join('');
+const QS=[
+  [qt('SPELL'),'Same letters for everyone','<b>100 letters</b> fall one at a time, the same for everyone today. Each one has points, like A, B, C, Deal.'],
+  [qt('.T.'),'Tap, then tap again','Tap a column to move the letter there. <b>Tap that column again to drop it.</b>'],
+  [qt('CAR','l')+'<span style="width:10px"></span>'+qt('SKY','d'),'Make words','3 or more letters across (left to right), down or up light up. <b>Diagonal words score double.</b> A pink <b>2×</b> vowel doubles any word it\'s in.'],
+  ['<div class="qbtns"><span class="k">Clear +5</span><span>Hold</span></div>','Hold or clear','Clear a word for its points now, or <b>hold it</b> and build a longer one for more. <b>90, 180 and 300 points</b> earn ⭐ ⭐⭐ ⭐⭐⭐.']];
+let qStep=0,qHelp=false;
+function qShow(){const q=QS[qStep];$('qPic').innerHTML=q[0];$('qTitle').textContent=q[1];$('qText').innerHTML=q[2];
+  $('qDots').innerHTML=QS.map((_,k)=>'<span'+(k===qStep?' class="on"':'')+'></span>').join('');const last=qStep===QS.length-1;
+  $('quickGo').textContent=!last?'Next':qHelp?'Got it':'Try a quick demo';$('qSkip').textContent=qHelp?'See all the rules':'Skip to today\'s game'}
+function qOpen(help){qHelp=!!help;qStep=0;qShow();$('quick').hidden=false}
+$('quickGo').onclick=()=>{if(qStep<QS.length-1){qStep++;return qShow()}$('quick').hidden=true;if(!qHelp)startDemo()};
+$('qSkip').onclick=()=>{$('quick').hidden=true;if(qHelp)$('help').hidden=false;else start()};
+
+// ---------- Demo ----------
+// A guided practice round (never today's letters, nothing saved): CA is on the board, R makes CAR.
+// Hold it, add D for CARD, hold again, add S for CARDS and clear it: 13 points instead of 5.
+let demo=0;
+const DEMO=[{l:'R',c:2,w:'CAR'},{l:'D',c:3,w:'CARD'},{l:'S',c:4,w:'CARDS'},{l:'e',c:3,w:'JET'}];   // lowercase e = a 2× vowel
+const demoCol=()=>DEMO[Math.min(li,DEMO.length)-1].c;
+function startDemo(){clearTimeout(timer);['help','menu','done','quick','demoDone','cover','ask'].forEach(id=>$(id).hidden=true);
+  demo=1;replay=true;playDay=null;letters=DEMO.map(d=>d.l);grid=Array.from({length:H},()=>Array(W).fill(null));grid[H-1][0]='C';grid[H-1][1]='A';
+  li=0;score=0;cleared=[];over=false;cur=null;lit=[];asking=[];offered=new Set();chains=new Set();document.body.classList.add('demo');$('pno').textContent='Demo';layout();spawn()}
+function demoOff(){if(!demo)return;demo=0;document.body.classList.remove('demo');$('askHold').classList.remove('off');$('askHold').onclick=holdClick}
+function coach(step,t){const m=$('msg');m.className='coach';m.innerHTML=(step?'<small>'+step+'</small>':'')+'<span>'+t+'</span>'}
+const colName=c=>'ABCDEFGHI'[c];
+function demoTip(wrong){if(!demo)return;const n=li,d=DEMO[n-1];if(!cur||!d)return;
+  if(wrong)return coach('','Move <b>'+cur.l+'</b> to the flashing square first.');
+  if(n===1&&cur.c!==d.c)return coach('Step 1 of 6 · Move it','Tap the column with the flashing square to move <b>R</b> there. It waits for you in the demo.');
+  if(n===1)return coach('Step 2 of 6 · Drop it','Tap that same column again to drop <b>R</b> and spell CAR.');
+  if(n===2)return coach('Step 4 of 6 · Keep building',cur.c!==d.c?'Tap the flashing column for <b>D</b>, then tap it again to drop it.':'<b>D</b> is right over the flashing square. Tap that column to drop it and make CARD.');
+  if(n===4)return coach('Step 6 of 6 · Bonus vowel','A pink <b>2×</b> vowel doubles any word it\'s in. There\'s one A, E, I, O and U each game. '+(cur.c!==d.c?'Move the <b>E</b> between J and T.':'Drop it between J and T.'));
+  return coach('Step 5 of 6 · Go big',cur.c!==d.c?'Move <b>S</b> to the flashing column and drop it.':'Tap again to drop <b>S</b> for CARDS.')}
+// The pop-up in the demo: hold CAR and CARD, clear CARDS. The other button just explains.
+function demoAsk(){const w=asking[0].w,hold=w==='CAR'||w==='CARD',clr=$('askList').querySelector('button');
+  clr.classList.toggle('off',hold);$('askHold').classList.toggle('off',!hold);
+  if(hold){clr.onclick=()=>coach('','Clearing now is the safe play. In this demo, tap <b>Hold</b> to see what holding gets you.');
+    $('askHold').onclick=()=>{$('askHold').onclick=holdClick;closeAsk(false)};
+    coach(w==='CAR'?'Step 3 of 6 · Hold or clear':'Hold again?',w==='CAR'?'CAR is worth <b>+'+wordPts(asking[0])+'</b> now. Tap <b>Hold</b> to keep it and build a longer word.':'CARD is <b>+'+wordPts(asking[0])+'</b>. Words of 5+ letters get a bonus. <b>Hold</b> it once more.')}
+  else if(w==='JET'){$('askHold').onclick=()=>coach('','Tap <b>Clear</b> to bank JET.');
+    coach('Double points','JET is <b>'+[...'JET'].reduce((a,l)=>a+PTS[l],0)+'</b> points, doubled by the 2× E to <b>+'+wordPts(asking[0])+'</b>. Two 2× vowels in one word make ×4! Tap <b>Clear</b>.')}
+  else{$('askHold').onclick=()=>coach('','Bank it! Tap <b>Clear</b> to score CARDS.');
+    coach('Cash in','CARDS is worth <b>+'+wordPts(asking[0])+'</b>, way more than CAR. Tap <b>Clear</b>.')}}
+const holdClick=$('askHold').onclick;
+function demoFinish(){paint();coach('','Nice!');store.set('demo','1');
+  $('ddText').innerHTML='Holding turned a <b>5</b> point CAR into a <b>13</b> point CARDS, and the 2× E doubled JET to <b>20</b>. That\'s the gamble: hold your words for more points, or play it safe and clear them.';
+  setTimeout(()=>{demoOff();$('demoDone').hidden=false},900)}
+$('ddGo').onclick=()=>{$('demoDone').hidden=true;start();const r=result(today().k);if(r)showDone(r)};
+$('ddAgain').onclick=startDemo;
+
+// ---------- Sound ----------
+// The shared sound engine and every sound option (source/sounds.js, also used by the sound board) go here at build time.
+const soundOn=()=>store.get('sound','on')==='on';
+__SOUNDS__
+// Jeff's picks from the sound board (0=A ... 7=H). A is the original sound for each moment.
+const PICK={move:0,drop:0,word:4,clear:5,big:7,star:5,final:1,end:4,win:6};   // Nov 1: Ta-da, Marimba, Harp, Ding ding, Alarm, Music box, Trumpets
+const sfx=(k,...a)=>{try{const m=SOUNDS.find(x=>x.k===k);m.o[PICK[k]||0][1](...a)}catch(e){}};
+
+// ---------- Usage check-in (website only), Firebase ss_devices ----------
+// Once a day on open, again when the daily game ends. h maps each day to the score (-1 = opened, not finished), last 60 days.
+function devId(){let id=store.get('dev','');if(!id){id=Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>'abcdefghijklmnopqrstuvwxyz0123456789'[b%36]).join('');store.set('dev',id)}return id}
+async function checkIn(n){if(!/github\.io$|smaisle\.app$/.test(location.hostname))return;
+  const day=today().k,newDay=store.get('seen','')!==day;if(n==null&&!newDay)return;
+  let h={};try{h=JSON.parse(store.get('hist','{}'))||{}}catch(e){}
+  if(n!=null)h[day]=n;else if(!(day in h))h[day]=-1;h=Object.fromEntries(Object.entries(h).sort().slice(-60));
+  const first=store.get('first','')||day,days=+store.get('days',0)+(newDay?1:0),I=v=>({integerValue:String(Math.round(v)||0)}),T=s=>({stringValue:s});
+  const hm={};for(const k in h)hm[k]=I(h[k]);
+  const body={fields:{first:T(first),last:T(day),days:I(days),v:T(VERSION),daily:I(+store.get('ndone',0)),demo:{booleanValue:store.get('demo','')==='1'},desk:{booleanValue:innerWidth>=820},t:I(Date.now()),h:{mapValue:{fields:hm}}}};
+  try{const r=await fetch(`https://firestore.googleapis.com/v1/projects/${FB_PROJ}/databases/(default)/documents/${CODE}_devices/${devId()}?key=${FB_KEY}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(r.ok){store.set('seen',day);store.set('first',first);store.set('days',String(days));store.set('hist',JSON.stringify(h))}}catch(e){}}
+
+function layout(){const w=Math.min(innerWidth-4,520),cell=Math.max(22,Math.min(Math.floor((w-6-3*(W-1))/W),Math.floor((innerHeight-256)/(H+1.25)),64));
+  document.documentElement.style.setProperty('--cell',cell+'px')}
+addEventListener('resize',layout);
+const vline='v'+VERSION+' · '+VDATE;$('ver').textContent=vline;$('menuVer').textContent=TITLE+' · '+vline+' · smAisle';
+// Testing buttons (restart today, try the ending) only show on the Claude copy, or on the website with #test in the address.
+if(/github\.io$|smaisle\.app$/.test(location.hostname)&&!/test/.test(location.hash))$('testSec').hidden=true;
+layout();cover();
+// The clock check runs in the background. If it corrects the day while you're still on the cover, the cover updates
+// and shows a note; if you've already started playing, the real date applies next time you open the game.
+checkClock().then(fixed=>{if(fixed&&!$('cover').hidden){cover();$('cvStreak').hidden=false;
+  $('cvStreak').textContent="📅 Your phone's date is off, so this is today's real game (No. "+today().n+').'}checkIn(null)});
+</script>
+<script src="https://smaisle.app/daily/games.js" async onload="window.moreGames&&moreGames()"></script>
+</body>
+</html>
