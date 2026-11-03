@@ -182,8 +182,7 @@ details.more summary::after{content:' ▸';font-size:11px}details.more[open] sum
 .dlinks i{font-family:var(--body);text-transform:none;letter-spacing:0;font-weight:400;color:var(--ink2)}
 #cover .links button{background:none;border:none;padding:6px 2px;font:inherit;letter-spacing:inherit;text-transform:inherit;color:var(--ink);text-decoration:underline}
 #cvStreak{font-family:var(--sans);font-weight:800;font-size:14px;letter-spacing:.04em}
-.dback{position:fixed;top:calc(env(safe-area-inset-top,0px) + 6px);left:max(8px,env(safe-area-inset-left,0px));display:inline-flex;align-items:center;gap:4px;box-sizing:border-box;width:auto;height:32px;margin:0;padding:0 9px;background:#ffe27a;color:#1a1814;border:2px solid #1a1814;border-radius:4px;box-shadow:none;font:800 13px/1 'Libre Franklin',system-ui,sans-serif;letter-spacing:.02em;text-transform:none;text-decoration:none;white-space:nowrap;cursor:pointer;z-index:15}#cover .dback{z-index:31}
-#app{padding-top:40px}
+.dback{position:fixed;top:calc(env(safe-area-inset-top,0px) + 6px);left:max(8px,env(safe-area-inset-left,0px));display:inline-flex;align-items:center;gap:4px;box-sizing:border-box;width:auto;height:32px;margin:0;padding:0 9px;background:#ffe27a;color:#1a1814;border:2px solid #1a1814;border-radius:4px;box-shadow:none;font:800 13px/1 'Libre Franklin',system-ui,sans-serif;letter-spacing:.02em;text-transform:none;text-decoration:none;white-space:nowrap;cursor:pointer;z-index:31}
 .homeline{display:flex;justify-content:center;flex-wrap:wrap;gap:0 5px;font:600 11px/1.3 'Libre Franklin',system-ui,sans-serif;letter-spacing:.02em;text-transform:none;color:var(--ink2)}.homeline a{color:inherit;text-decoration:underline}
 #stars{min-width:12px;text-align:center;letter-spacing:-3px;font-size:11px}
 @media (max-width:420px){.top{gap:5px}.box{padding:0 6px;gap:4px}.box small{letter-spacing:.05em;font-size:9px}#pno{font-size:18px}}
@@ -254,7 +253,6 @@ body.demo #msg{min-height:64px}
 </head>
 <body>
 <div id="app">
-  <button class="dback" id="gameSm">‹ smAisle Daily</button>
   <div class="top"><div id="pno">No. 1</div>
     <div class="box"><small>Score</small><b id="score">0</b></div>
     <div class="box"><small>Stars</small><b id="stars">–</b></div>
@@ -377,7 +375,7 @@ body.demo #msg{min-height:64px}
 </div></div>
 
 <script>
-const VERSION='3.13',VDATE='Nov 3',TITLE='Straight Down Spell',CODE='ss';
+const VERSION='3.14',VDATE='Nov 3',TITLE='Straight Down Spell',CODE='ss';
 const FB_KEY='AIzaSyAlbSCTpAiK-1tojkyWrY3QuJsSzILHSfs',FB_PROJ='aislerun-88e79';
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem(CODE+'_'+k);return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(CODE+'_'+k,v)}catch(e){}}};
@@ -715,7 +713,7 @@ $('coverPast').onclick=()=>{backTo='cover';showPast()};
 $('coverHow').onclick=()=>qOpen(true);
 // One way back to the smAisle Daily home, from the cover and the menu. On the website it opens in place; in the Claude copy, in a new tab.
 const toDaily=()=>{const u='https://smaisle.app/daily/';if(/github\.io$|smaisle\.app$/.test(location.hostname))location.href=u;else window.open(u,'_blank','noopener')};
-$('coverSm').onclick=toDaily;$('gameSm').onclick=toDaily;$('mDaily').onclick=toDaily;$('dDaily').onclick=toDaily;
+$('coverSm').onclick=toDaily;$('mDaily').onclick=toDaily;$('dDaily').onclick=toDaily;
 // Shared results always link to the game's own page on smaisle.app (right from Claude and app copies too).
 const SITE='https://smaisle.app/sdspell/';
 // "More smAisle games" on the result card: the list from smAisle Daily's games.js when it loads,
@@ -959,7 +957,7 @@ async function checkIn(n){if(!/github\.io$|smaisle\.app$/.test(location.hostname
   try{const r=await fetch(`https://firestore.googleapis.com/v1/projects/${FB_PROJ}/databases/(default)/documents/${CODE}_devices/${devId()}?key=${FB_KEY}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     if(r.ok){store.set('seen',day);store.set('first',first);store.set('days',String(days));store.set('hist',JSON.stringify(h))}}catch(e){}}
 
-function layout(){const w=Math.min(innerWidth-4,520),cell=Math.max(22,Math.min(Math.floor((w-6-3*(W-1))/W),Math.floor((innerHeight-290)/(H+1.25)),64));
+function layout(){const w=Math.min(innerWidth-4,520),cell=Math.max(22,Math.min(Math.floor((w-6-3*(W-1))/W),Math.floor((innerHeight-256)/(H+1.25)),64));
   document.documentElement.style.setProperty('--cell',cell+'px')}
 addEventListener('resize',layout);
 const vline='v'+VERSION+' · '+VDATE;$('ver').textContent=vline;$('coverVer').textContent=vline;if(!/github\.io$|smaisle\.app$/.test(location.hostname)){$('homeLink').target='_blank';$('homeLink').rel='noopener'}$('menuVer').textContent=TITLE+' · '+vline+' · smAisle';
