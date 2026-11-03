@@ -295,7 +295,7 @@ body.demo #msg{min-height:64px}
     <li class="fine">The website version sends an anonymous check-in so we can count players: the day, your score and the game version. Never your name, contacts or location.</li>
   </ul>
   <div class="hnav"><button id="hPrev">‹ Back</button><span id="hDots"></span><button id="hNext">Next ›</button></div>
-  <div style="display:flex;gap:8px"><button class="go alt" id="helpDemo" style="flex:1">Play the demo</button><button class="go" id="helpGo" style="flex:1.3">Let's play</button></div>
+  <div style="display:flex;gap:8px"><button class="go alt" id="helpDemo" style="flex:1">Watch the demo</button><button class="go" id="helpGo" style="flex:1.3">Let's play</button></div>
   <div class="ver" id="ver"></div>
 </div></div>
 
@@ -321,12 +321,12 @@ body.demo #msg{min-height:64px}
   <p class="lsub" id="lTot"></p>
   <button class="go" id="mClose">Back to game</button>
   <div class="pair"><button class="go alt" id="mPast">Archive</button><button class="go alt" id="mStats">Stats</button></div>
-  <div class="pair"><button class="go alt" id="mHow">How to play</button><button class="go alt" id="mDemo">Play the demo</button></div>
+  <div class="pair"><button class="go alt" id="mHow">How to Play</button></div>
   <details class="more" id="leftsBox"><summary>Letters still to come</summary><p class="lsub" id="lX2"></p><div id="lefts"></div></details>
   <div class="pair"><button class="go alt" id="mCover">Home screen</button><button class="go alt" id="mDaily" style="text-transform:none;background:var(--hiY);color:#1a1814">‹ smAisle Daily</button></div>
-  <div class="helpsec" id="testSec"><h3>Testing</h3><div><button class="go alt" id="mRestart">Restart today's game</button><button class="go alt" id="mEnd">Try the ending</button></div></div>
   <button class="go alt" id="mSet">Settings</button>
   <div class="ver" id="menuVer"></div>
+  <div class="helpsec" id="testSec"><h3>Testing</h3><div><button class="go alt" id="mRestart">Restart today's game</button><button class="go alt" id="mEnd">Try the ending</button></div></div>
 </div></div>
 
 <div class="sheet" id="settings" hidden><div class="card" style="position:relative">
@@ -375,7 +375,7 @@ body.demo #msg{min-height:64px}
 </div></div>
 
 <script>
-const VERSION='3.14',VDATE='Nov 3',TITLE='Straight Down Spell',CODE='ss';
+const VERSION='3.15',VDATE='Nov 3',TITLE='Straight Down Spell',CODE='ss';
 const FB_KEY='AIzaSyAlbSCTpAiK-1tojkyWrY3QuJsSzILHSfs',FB_PROJ='aislerun-88e79';
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem(CODE+'_'+k);return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(CODE+'_'+k,v)}catch(e){}}};
@@ -750,7 +750,7 @@ let hp=0;const hPage=n=>{const ps=[...document.querySelectorAll('#help .hp')];hp
 $('hPrev').onclick=()=>hPage(hp-1);$('hNext').onclick=()=>hPage(hp+1);
 new MutationObserver(()=>{if(!$('help').hidden)hPage(0)}).observe($('help'),{attributes:true,attributeFilter:['hidden']});hPage(0);
 $('mHow').onclick=()=>{$('menu').hidden=true;$('help').hidden=false};
-$('mDemo').onclick=startDemo;$('helpDemo').onclick=startDemo;$('coverDemo').onclick=startDemo;
+$('helpDemo').onclick=startDemo;$('coverDemo').onclick=startDemo;
 // Testing only: today's letters with 15 left. A robot plays the first 85 (clearing words, then holding a couple near the end),
 // and you take it from there. It's a replay, so nothing is saved.
 $('mEnd').onclick=()=>{$('menu').hidden=true;$('done').hidden=true;clearTimeout(timer);start(true);clearTimeout(timer);cur=null;
