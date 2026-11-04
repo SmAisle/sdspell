@@ -272,6 +272,7 @@ details.more summary::after{content:' ▸';font-size:11px}details.more[open] sum
 @media (max-height:640px){.ssD{--cell:31px;gap:3px}.ssN .cell{--cell:28px}.ssM{min-height:0;font-size:12px}.ssA{padding:3px 8px}.ssA .ah{font-size:10px;margin:0}.ssA .aw .w{font-size:16px}.ssA .aw .p{font-size:18px}.ssA .aw button{height:30px}.ssH{height:27px;margin-top:2px}.ssA .aw{padding:1px 0;border:0}}
 @media (min-height:800px){.ssD{--cell:44px;gap:10px}}
 </style>
+<script>/* one Sound setting for every smAisle game */(function(){try{var s=localStorage.getItem('smaisle-sound');if(s==='on'||s==='off')localStorage.setItem('ss_sound',s)}catch(e){}})();</script>
 </head>
 <body>
 <div id="app">
@@ -335,7 +336,7 @@ details.more summary::after{content:' ▸';font-size:11px}details.more[open] sum
   <p class="lsub" id="lTot"></p>
   <button class="go" id="mClose">Back to game</button>
   <div class="pair"><button class="go alt" id="mPast">Archive</button><button class="go alt" id="mStats">Stats</button></div>
-  <div class="pair"><button class="go alt" id="mHow">How to play</button><button class="go alt" id="mDemo">Try the demo</button></div>
+  <div class="pair"><button class="go alt" id="mHow">How to Play</button></div>
   <details class="more" id="leftsBox"><summary>Letters still to come</summary><p class="lsub" id="lX2"></p><div id="lefts"></div></details>
   <div class="pair"><button class="go alt" id="mCover">Home screen</button><button class="go alt" id="mDaily" style="text-transform:none;background:var(--hiY);color:#1a1814">‹ smAisle Daily</button></div>
   <div class="helpsec" id="testSec"><h3>Testing</h3><div><button class="go alt" id="mRestart">Restart today's game</button><button class="go alt" id="mEnd">Try the ending</button></div></div>
@@ -416,7 +417,7 @@ function smDemo(o){
  run();return {close:close}}
 </script>
 <script>
-const VERSION='3.15',VDATE='Nov 4',TITLE='Straight Down Spell',CODE='ss';
+const VERSION='3.17',VDATE='Nov 4',TITLE='Straight Down Spell',CODE='ss';
 const FB_KEY='AIzaSyAlbSCTpAiK-1tojkyWrY3QuJsSzILHSfs',FB_PROJ='aislerun-88e79';
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem(CODE+'_'+k);return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(CODE+'_'+k,v)}catch(e){}}};
@@ -791,7 +792,7 @@ let hp=0;const hPage=n=>{const ps=[...document.querySelectorAll('#help .hp')];hp
 $('hPrev').onclick=()=>hPage(hp-1);$('hNext').onclick=()=>hPage(hp+1);
 new MutationObserver(()=>{if(!$('help').hidden)hPage(0)}).observe($('help'),{attributes:true,attributeFilter:['hidden']});hPage(0);
 $('mHow').onclick=()=>{$('menu').hidden=true;$('help').hidden=false};
-$('mDemo').onclick=$('helpDemo').onclick=$('coverDemo').onclick=openDemo;
+$('helpDemo').onclick=$('coverDemo').onclick=openDemo;
 // Testing only: today's letters with 15 left. A robot plays the first 85 (clearing words, then holding a couple near the end),
 // and you take it from there. It's a replay, so nothing is saved.
 $('mEnd').onclick=()=>{$('menu').hidden=true;$('done').hidden=true;clearTimeout(timer);start(true);clearTimeout(timer);cur=null;
@@ -888,5 +889,7 @@ checkClock().then(fixed=>{if(fixed&&!$('cover').hidden){cover();$('cvStreak').hi
   $('cvStreak').textContent="📅 Your phone's date is off, so this is today's real game (No. "+today().n+').'}checkIn(null)});
 </script>
 <script src="https://smaisle.app/daily/games.js" async onload="window.moreGames&&moreGames()"></script>
+<script>/* sound icon at the top right of the menu; it and Settings stay in step */
+(function(){var K='ss_sound',C='#mSound',m=document.querySelector('#menu');if(!m)return;var c=m.querySelector('.card,.sc')||m,x=c.querySelector('.x,[data-close]'),b=document.createElement('button');b.type='button';b.id='smSnd';b.setAttribute('style','position:absolute;top:9px;right:'+(x?'51px':'9px')+';width:38px;height:34px;padding:0;display:grid;place-items:center;background:var(--card,#fffdf6);color:var(--ink,#1a1814);border:2px solid var(--ink,#1a1814);border-radius:4px;z-index:3;cursor:pointer;touch-action:manipulation');if(getComputedStyle(c).position==='static')c.style.position='relative';c.appendChild(b);function on(){var v='on';try{v=(localStorage.getItem(K)||'on').replace(/"/g,'')}catch(e){}return v!=='off'}function draw(){var o=on();b.setAttribute('aria-label',o?'Turn sound off':'Turn sound on');b.innerHTML='<svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9.5v5h3.5l5 4v-13l-5 4z" fill="currentColor"/>'+(o?'<path d="M16 9a4.2 4.2 0 0 1 0 6"/><path d="M18.6 6.5a8 8 0 0 1 0 11"/>':'<path d="M16.5 9.5l5 5M21.5 9.5l-5 5"/>')+'</svg>'}function share(){try{localStorage.setItem('smaisle-sound',on()?'on':'off')}catch(e){}}b.onclick=function(e){e.stopPropagation();var v=on()?'off':'on';var b=document.querySelector(C);if(b&&on()!==(v==='on'))b.click();draw();share()};document.addEventListener('click',function(e){var t=e.target.closest&&e.target.closest(C);setTimeout(function(){if(t)share();draw()},0)},true);draw()})();</script>
 </body>
 </html>
