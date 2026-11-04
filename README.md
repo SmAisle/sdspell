@@ -21,7 +21,7 @@ Play: https://smaisle.github.io/sdspell/ (once GitHub Pages is on). Home-screen 
 - Words: ABC Deal's full list (rude words removed), about 80,000 words. Across words read left to right only.
 
 ## Screens
-Cover (date, Game No., streak, stats row, Archive · Stats · How to play, smAisle link), 4-card intro + 6-step guided demo for first-timers (☰ → Play the demo replays it), menu with letters left, Stats, Archive (last 7 days, played late), result card with Share.
+Cover (date, Game No., streak, stats row, Archive · Stats · How to play, smAisle link), Try it with a coach demo for first-timers (Try the demo on the cover, in the menu and in How to Play replays it), 4 quick cards from How to Play on the cover, menu with letters left, Stats, Archive (last 7 days, played late), result card with Share.
 
 ## Files
 - `index.html`: the whole game (built). `source/src.html` is the template; `python3 source/build.py` fills in `source/words.txt` and writes `index.html`.
@@ -49,3 +49,8 @@ Started as Gramble (v1.0 to v2.5, Oct 30 to 31, 2026). The Gramble name went to 
 
 ## v3.12 (Nov 2)
 - Cleaner menu (change list #21): Sound and Dark mode moved to a new Settings screen.
+
+## v3.15 (Nov 4)
+- One demo for every game (change list #30): Try it with a coach, using the shared demo frame (inlined in source/src.html). Three real moves on a small practice board. The old 6-step demo and its end card are gone, and the real game no longer has any demo code in it. Nothing is saved, including the old "demo" key, so the check-in's demo field only stays true for people who finished the old demo.
+- First Play shows the new demo. The 4 quick cards stay as How to Play from the cover.
+- Source catch-up: v3.13 and v3.14 had only been added to index.html, so they are now in source/src.html too and a rebuild keeps them.
