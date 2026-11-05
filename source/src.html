@@ -283,6 +283,7 @@ details.more summary::after{content:' ▸';font-size:11px}details.more[open] sum
   <div id="msg"></div>
   <div id="stage"><div id="col"><div id="nextRow"><div class="nl"><span>Now</span></div><div id="nowT" class="cell on"></div><div class="nr"><span>Next</span><div id="nextT" class="cell on"></div><em id="nextNote"></em></div></div><div id="board"></div></div></div>
   <div id="bar"><button id="lBtn" aria-label="Left">◀︎</button><button id="dBtn" aria-label="Drop">▼︎</button><button id="rBtn" aria-label="Right">▶︎</button><button id="goBtn" hidden>Finish</button></div>
+  <button class="go alt" id="endHub" hidden style="flex:none;text-transform:none;background:var(--hiY);color:#1a1814;padding:8px;margin:6px 10px 0;width:calc(100% - 20px)">‹ smAisle Daily</button>
   <div id="lrow"><div id="left"></div><div id="gauge" aria-label="Speed"><span>Speed</span><i></i><i></i><i></i><i></i><i></i></div></div>
 </div>
 
@@ -417,7 +418,7 @@ function smDemo(o){
  run();return {close:close}}
 </script>
 <script>
-const VERSION='3.17',VDATE='Nov 4',TITLE='Straight Down Spell',CODE='ss';
+const VERSION='3.18',VDATE='Nov 4',TITLE='Straight Down Spell',CODE='ss';
 const FB_KEY='AIzaSyAlbSCTpAiK-1tojkyWrY3QuJsSzILHSfs',FB_PROJ='aislerun-88e79';
 const $=id=>document.getElementById(id);
 const store={get(k,d){try{const v=localStorage.getItem(CODE+'_'+k);return v==null?d:v}catch(e){return d}},set(k,v){try{localStorage.setItem(CODE+'_'+k,v)}catch(e){}}};
@@ -695,7 +696,7 @@ async function showDef(w){if(!w)return;$('defW').textContent=w;const T=$('defT')
   catch(e){if($('defW').textContent!==w)return;T.textContent="Couldn't reach the dictionary.";look()}}
 $('defOk').onclick=()=>{$('def').hidden=true};$('def').onclick=e=>{if(e.target.id==='def')$('def').hidden=true};
 $('dAgain').onclick=()=>{$('done').hidden=true;start(true,playDay)};
-$('dClose').onclick=()=>$('done').hidden=true;
+$('dClose').onclick=()=>{$('done').hidden=true;$('endHub').hidden=false};
 $('dPast').onclick=()=>{backTo='done';showPast()};
 $('dStats').onclick=()=>{backTo='done';showStats()};
 
@@ -732,7 +733,7 @@ $('pastBack').onclick=()=>{$('past').hidden=true;goBack()};
 // ---------- Save and start ----------
 function save(){if(replay||over||!playDay)return;store.set('prog_'+playDay.k,JSON.stringify({grid,li:li-(cur?1:0),score,cleared}))}
 // day: a past day from Archive (played late); otherwise today.
-function start(again,day){slowTest=false;playDay=day||today();late=playDay.k!==today().k;replay=!!again;letters=dailyLetters(playDay.k);
+function start(again,day){slowTest=false;$('endHub').hidden=true;playDay=day||today();late=playDay.k!==today().k;replay=!!again;letters=dailyLetters(playDay.k);
   grid=Array.from({length:H},()=>Array(W).fill(null));li=0;score=0;cleared=[];over=false;cur=null;lit=[];chains=new Set();
   let prog=null;try{prog=JSON.parse(store.get('prog_'+playDay.k,''))}catch(e){}
   const done=result(playDay.k);
@@ -755,7 +756,7 @@ $('coverPast').onclick=()=>{backTo='cover';showPast()};
 $('coverHow').onclick=qOpen;
 // One way back to the smAisle Daily home, from the cover and the menu. On the website it opens in place; in the Claude copy, in a new tab.
 const toDaily=()=>{const u='https://smaisle.app/daily/';if(/github\.io$|smaisle\.app$/.test(location.hostname))location.href=u;else window.open(u,'_blank','noopener')};
-$('coverSm').onclick=toDaily;$('mDaily').onclick=toDaily;$('dDaily').onclick=toDaily;
+$('coverSm').onclick=toDaily;$('mDaily').onclick=toDaily;$('dDaily').onclick=toDaily;$('endHub').onclick=toDaily;
 // Shared results always link to the game's own page on smaisle.app (right from Claude and app copies too).
 const SITE='https://smaisle.app/sdspell/';
 // "More smAisle games" on the result card: the list from smAisle Daily's games.js when it loads,

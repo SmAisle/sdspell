@@ -54,3 +54,6 @@ Started as Gramble (v1.0 to v2.5, Oct 30 to 31, 2026). The Gramble name went to 
 - One demo for every game (change list #30): Try it with a coach, using the shared demo frame (inlined in source/src.html). Three real moves on a small practice board. The old 6-step demo and its end card are gone, and the real game no longer has any demo code in it. Nothing is saved, including the old "demo" key, so the check-in's demo field only stays true for people who finished the old demo.
 - First Play shows the new demo. The 4 quick cards stay as How to Play from the cover.
 - Source catch-up: v3.13 and v3.14 had only been added to index.html, so they are now in source/src.html too and a rebuild keeps them.
+
+## v3.18 (Nov 4)
+After See the board on a finished game, a yellow ‹ smAisle Daily button shows under the board, so one tap always leaves.
